@@ -6,7 +6,6 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-
       const profileEndpoint = userData.user_type === 'teacher' 
         ? API_ENDPOINTS.teachers 
         : API_ENDPOINTS.students;
@@ -17,7 +16,8 @@ export const register = createAsyncThunk(
         password: userData.password,
         first_name: userData.first_name,
         last_name: userData.last_name
-      }
+      };
+
       const profileData = {
         ...(userData.user_type === 'teacher' ? {
           user,
@@ -26,6 +26,7 @@ export const register = createAsyncThunk(
           date_of_birth: userData.date_of_birth,
           joining_date: userData.joining_date,
           qualification: userData.qualification,
+          subjects: userData.subjects || []
         } : {
           user,
           current_class_id: userData.current_class,
@@ -40,12 +41,23 @@ export const register = createAsyncThunk(
       };
 
       const profileResponse = await api.post(profileEndpoint, profileData);
+      return profileResponse.data;
 
-      return {
-        profile: profileResponse.data
-      };
     } catch (err) {
-      return rejectWithValue(err.response?.data || 'Registration failed');
+      if (err.response && err.response.data) {
+        if (err.response.data.errors) {
+          return rejectWithValue(err.response.data.errors);
+        }
+        if (typeof err.response.data === 'object') {
+          return rejectWithValue(err.response.data);
+        }
+        return rejectWithValue({ 
+          non_field_errors: [err.response.data] 
+        });
+      }
+      return rejectWithValue({ 
+        non_field_errors: ['Registration failed. Please try again.'] 
+      });
     }
   }
 );
@@ -54,68 +66,60 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      console.log("Attempting login with credentials:", credentials);
-      
-      // First try the standard login endpoint
-      try {
-        const response = await api.post(API_ENDPOINTS.auth.login, credentials);
-        localStorage.setItem('access_token', response.data.access);
-        localStorage.setItem('refresh_token', response.data.refresh);
-        
-        const userResponse = await api.get('/auth/user/');
-        return userResponse.data;
-      } catch (firstError) {
-        console.log("Standard login failed, trying custom endpoint:", firstError);
-        
-        // If standard login fails, try the custom endpoint
-        try {
-          const response = await api.post(API_ENDPOINTS.auth.custom, credentials);
-          localStorage.setItem('access_token', response.data.access);
-          localStorage.setItem('refresh_token', response.data.refresh);
-          
-          const userResponse = await api.get('/auth/user/');
-          return userResponse.data;
-        } catch (secondError) {
-          console.log("Custom login also failed:", secondError);
-          
-          // Both endpoints failed, construct detailed error message
-          const firstErrorMsg = firstError.response?.data?.detail || 
-                              firstError.message || 
-                              'Standard login endpoint failed';
-          const secondErrorMsg = secondError.response?.data?.detail || 
-                               secondError.message || 
-                               'Custom login endpoint failed';
-          
-          const combinedError = {
-            message: 'Both login endpoints failed',
-            details: {
-              standardEndpoint: API_ENDPOINTS.auth.login,
-              standardError: firstErrorMsg,
-              customEndpoint: API_ENDPOINTS.auth.custom,
-              customError: secondErrorMsg
-            }
-          };
-          
-          return rejectWithValue(combinedError);
+      // Get JWT tokens using username and password
+      const response = await api.post(API_ENDPOINTS.auth.jwt_create, {
+        username: credentials.username,
+        password: credentials.password
+      });
+
+      const { access, refresh } = response.data;
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+
+      return {
+        access,
+        refresh,
+        user: {
+          username: credentials.username
         }
-      }
+      };
+
     } catch (err) {
-      // Catch any unexpected errors
-      console.error("Unexpected error during login:", err);
-      return rejectWithValue({
-        message: 'Login process failed',
-        error: err.message || 'Unknown error occurred'
+      console.error("Login error:", err);
+      if (err.response?.data) {
+        return rejectWithValue(err.response.data);
+      }
+      return rejectWithValue({ 
+        message: 'Invalid username or password' 
       });
     }
   }
 );
 
+export const refreshToken = createAsyncThunk(
+  'auth/refreshToken',
+  async (_, { rejectWithValue }) => {
+    try {
+      const refresh = localStorage.getItem('refresh_token');
+      if (!refresh) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await api.post(API_ENDPOINTS.auth.refresh, { refresh });
+      localStorage.setItem('access_token', response.data.access);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || { message: 'Token refresh failed' });
+    }
+  }
+);
 
 const initialState = {
   user: null,
   isAuthenticated: false,
   loading: false,
   error: null,
+  registrationSuccess: false,
 };
 
 const authSlice = createSlice({
@@ -125,41 +129,93 @@ const authSlice = createSlice({
     logout(state) {
       state.user = null;
       state.isAuthenticated = false;
+      state.loading = false;
+      state.error = null;
+      state.registrationSuccess = false;
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
     },
+    clearAuthError(state) {
+      state.error = null;
+    },
+    resetRegistrationStatus(state) {
+      state.registrationSuccess = false;
+    },
+    setAuthenticated(state, action) {
+      state.isAuthenticated = action.payload;
+    }
   },
   extraReducers: (builder) => {
     builder
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.registrationSuccess = false;
       })
       .addCase(register.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.isAuthenticated = true;
         state.loading = false;
+        state.error = null;
+        state.registrationSuccess = true;
+        
+        if (action.payload.access) {
+          localStorage.setItem('access_token', action.payload.access);
+        }
+        if (action.payload.refresh) {
+          localStorage.setItem('refresh_token', action.payload.refresh);
+        }
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.registrationSuccess = false;
+        state.error = action.payload || { 
+          non_field_errors: ['Registration failed. Please try again.'] 
+        };
       })
       .addCase(login.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
-        state.user = action.payload;
+        state.user = action.payload.user;
         state.isAuthenticated = true;
         state.loading = false;
+        state.error = null;
+        
+        localStorage.setItem('access_token', action.payload.access);
+        localStorage.setItem('refresh_token', action.payload.refresh);
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload || { 
+          message: 'Login failed. Please check your credentials.' 
+        };
+      })
+      .addCase(refreshToken.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(refreshToken.fulfilled, (state) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+      })
+      .addCase(refreshToken.rejected, (state) => {
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { 
+  logout, 
+  clearAuthError, 
+  resetRegistrationStatus,
+  setAuthenticated
+} = authSlice.actions;
 export const selectAuth = (state) => state.auth;
 export default authSlice.reducer;

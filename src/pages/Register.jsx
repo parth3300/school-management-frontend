@@ -107,70 +107,117 @@ const Register = () => {
   // Fetch classes and subjects from API
   useEffect(() => {
     const fetchInitialData = async () => {
-      setLoadingClasses(true);
-      setLoadingSubjects(true);
       try {
+        setLoadingClasses(true);
+        setLoadingSubjects(true);
+        
         const [classesResponse, subjectsResponse] = await Promise.all([
           api.get(API_ENDPOINTS.classes),
           api.get(API_ENDPOINTS.subjects)
         ]);
-        setClasses(classesResponse.data);
-        setSubjects(subjectsResponse.data);
+        
+        // Validate responses before setting state
+        if (classesResponse.data && Array.isArray(classesResponse.data)) {
+          setClasses(classesResponse.data);
+        } else {
+          console.error('Invalid classes data format:', classesResponse.data);
+          setClasses([]); // Set to empty array as fallback
+        }
+        
+        if (subjectsResponse.data && Array.isArray(subjectsResponse.data)) {
+          setSubjects(subjectsResponse.data);
+        } else {
+          console.error('Invalid subjects data format:', subjectsResponse.data);
+          setSubjects([]); // Set to empty array as fallback
+        }
+        
       } catch (error) {
         console.error('Error fetching initial data:', error);
+        // Optionally set error state to display to user
+        // setError('Failed to load initial data. Please refresh the page.');
+        
+        // Set empty arrays as fallback
+        setClasses([]);
+        setSubjects([]);
+        
       } finally {
         setLoadingClasses(false);
         setLoadingSubjects(false);
       }
     };
-
+  
     fetchInitialData();
+    
+    // Cleanup function (optional)
+    return () => {
+      // Cancel any pending requests if component unmounts
+      // You might need an axios cancel token if using axios
+    };
   }, []);
-
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
   };
 
+
+
+  // Modify the file change handler
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setProfilePic(file);
       setProfilePicPreview(URL.createObjectURL(file));
+      setFormData(prevState => ({
+        ...prevState,
+        profile_pic: file
+      }));
     }
   };
 
+  const handleMultiSelectChange = (e) => {
+    const { value } = e.target; // Material-UI Select multiple returns the array directly
+    setFormData(prevState => ({
+      ...prevState,
+      subjects: value
+    }));
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Create FormData object to handle file upload
-    const formDataObj = new FormData();
-    
-    // Append all form data
+    // Create FormData for file upload
+    const formDataWithFile = new FormData();
     for (const key in formData) {
-      if (Array.isArray(formData[key])) {
-        formData[key].forEach(item => formDataObj.append(key, item));
+      if (key === 'subjects') {
+        formData[key].forEach(subject => formDataWithFile.append('subjects', subject));
       } else {
-        formDataObj.append(key, formData[key]);
+        formDataWithFile.append(key, formData[key]);
       }
     }
-    
-    // Append profile picture if exists
     if (profilePic) {
-      formDataObj.append('profile_pic', profilePic);
+      formDataWithFile.append('profile_pic', profilePic);
     }
-    
-    // Append user type
-    formDataObj.append('user_type', userType);
-
-    const result = await dispatch(register(formDataObj));
-    
-    if (result.payload) {
-      navigate('/dashboard');
+  
+    try {
+      const result = await dispatch(register({
+        ...formData,
+        userType,
+        profile_pic: profilePic
+      }));
+      
+      // Only navigate if registration was successful
+      if (register.fulfilled.match(result)) {
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      // Error will be automatically handled by the authSlice
     }
   };
+    // Append profile picture
+  // Update the Select components to use handleSelectChange
 
   // Handle Enter key press to move to next field or submit
   const handleKeyDown = (e, nextFieldRef) => {
@@ -259,14 +306,43 @@ const Register = () => {
             </FormControl>
 
             {error && (
-              <Alert 
-                severity="error" 
-                sx={{ width: '100%', mb: 3 }}
-                onClose={() => {}}
-              >
-                {typeof error === 'object' ? JSON.stringify(error) : error}
-              </Alert>
-            )}
+  <Alert
+    severity="error"
+    sx={{ width: '100%', mb: 3 }}
+    onClose={() => {}}
+  >
+    {typeof error === 'string' ? (
+      error
+    ) : typeof error === 'object' ? (
+      <>
+        {Object.entries(error).map(([field, messages]) => {
+          if (typeof messages === 'object' && !Array.isArray(messages)) {
+            // Nested error like "user": { "username": [...], "email": [...] }
+            return Object.entries(messages).map(([nestedField, nestedMessages]) => (
+              <div key={`${field}-${nestedField}`}>
+                <strong>{nestedField.charAt(0).toUpperCase() + nestedField.slice(1)}:</strong>{' '}
+                {Array.isArray(nestedMessages)
+                  ? nestedMessages.join(' ')
+                  : nestedMessages}
+              </div>
+            ));
+          } else {
+            // Regular error like "email": ["error msg"]
+            return (
+              <div key={field}>
+                <strong>{field.charAt(0).toUpperCase() + field.slice(1)}:</strong>{' '}
+                {Array.isArray(messages) ? messages.join(' ') : messages}
+              </div>
+            );
+          }
+        })}
+      </>
+    ) : (
+      'An unknown error occurred.'
+    )}
+  </Alert>
+)}
+
 
             <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
               <Grid container spacing={3}>
@@ -440,31 +516,31 @@ const Register = () => {
 
                 {/* Subjects Dropdown - Only for Teachers */}
                 {userType === 'teacher' && (
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth margin="normal" sx={{ minWidth: 100 }}>
-                      <InputLabel>Subjects</InputLabel>
-                      <Select
-                        name="subjects"
-                        multiple
-                        value={formData.subjects}
-                        label="Subjects"
-                        onChange={handleChange}
-                        onKeyDown={(e) => handleKeyDown(e, phoneRef)}
-                        disabled={loadingSubjects}
-                      >
-                        {loadingSubjects ? (
-                          <MenuItem disabled>Loading subjects...</MenuItem>
-                        ) : (
-                          subjects.map((subject) => (
-                            <MenuItem key={subject.id} value={subject.id}>
-                              {subject.name}
-                            </MenuItem>
-                          ))
-                        )}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
+  <Grid item xs={12} sm={6}>
+    <FormControl fullWidth margin="normal" sx={{ minWidth: 100 }}>
+      <InputLabel>Subjects</InputLabel>
+      <Select
+        name="subjects"
+        multiple
+        value={formData.subjects}
+        label="Subjects"
+        onChange={handleMultiSelectChange}
+        onKeyDown={(e) => handleKeyDown(e, phoneRef)}
+        disabled={loadingSubjects}
+      >
+        {loadingSubjects ? (
+          <MenuItem disabled>Loading subjects...</MenuItem>
+        ) : (
+          subjects.map((subject) => (
+            <MenuItem key={subject.id} value={subject.id}>
+              {subject.name}
+            </MenuItem>
+          ))
+        )}
+      </Select>
+    </FormControl>
+  </Grid>
+)}
 
                 <Grid item xs={12} sm={6}>
                   <TextField

@@ -14,18 +14,27 @@ import {
   TableHead,
   TableRow,
   Typography,
+  IconButton,
+  Tooltip,
+  useTheme,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import SchoolForm from '../components/schools/SchoolForm';
-import { fetchSchools, createSchool, updateSchool, deleteSchool } from '../redux/slices/schoolSlice';
-import api from '../api/axios';
-import API_ENDPOINTS from '../api/endpoints';
+import {
+  fetchSchools,
+  createSchool,
+  updateSchool,
+  deleteSchool,
+} from '../redux/slices/schoolSlice';
 
 const Schools = () => {
   const dispatch = useDispatch();
   const { schools, loading, error } = useSelector((state) => state.school);
   const [openForm, setOpenForm] = useState(false);
   const [currentSchool, setCurrentSchool] = useState(null);
+  const theme = useTheme();
 
   useEffect(() => {
     dispatch(fetchSchools());
@@ -49,10 +58,12 @@ const Schools = () => {
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
+      <Box sx={{ my: 5 }}>
         <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Grid item>
-            <Typography variant="h4">Schools</Typography>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              Schools
+            </Typography>
           </Grid>
           <Grid item>
             <Button
@@ -62,54 +73,69 @@ const Schools = () => {
                 setCurrentSchool(null);
                 setOpenForm(true);
               }}
+              sx={{ borderRadius: 3 }}
             >
               Add School
             </Button>
           </Grid>
         </Grid>
 
-        <Card>
+        <Card elevation={3}>
           <CardContent>
             {loading ? (
               <Typography>Loading...</Typography>
             ) : error ? (
               <Typography color="error">{error}</Typography>
+            ) : schools.length === 0 ? (
+              <Typography>No schools found.</Typography>
             ) : (
               <TableContainer>
                 <Table>
-                  <TableHead>
+                  <TableHead sx={{ backgroundColor: theme.palette.primary.light }}>
                     <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Address</TableCell>
-                      <TableCell>Phone</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Address</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Phone</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
+                        Actions
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {schools.map((school) => (
-                      <TableRow key={school.id}>
+                    {schools.map((school, index) => (
+                      <TableRow
+                        key={school.id}
+                        sx={{
+                          backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff',
+                          transition: 'background-color 0.3s',
+                          '&:hover': { backgroundColor: '#f1f1f1' },
+                        }}
+                      >
                         <TableCell>{school.name}</TableCell>
                         <TableCell>{school.address}</TableCell>
                         <TableCell>{school.phone}</TableCell>
                         <TableCell>{school.email}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="small"
-                            onClick={() => {
-                              setCurrentSchool(school);
-                              setOpenForm(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={() => handleDelete(school.id)}
-                          >
-                            Delete
-                          </Button>
+                        <TableCell align="right">
+                          <Tooltip title="Edit">
+                            <IconButton
+                              onClick={() => {
+                                setCurrentSchool(school);
+                                setOpenForm(true);
+                              }}
+                              color="primary"
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton
+                              onClick={() => handleDelete(school.id)}
+                              color="error"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}

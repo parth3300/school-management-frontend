@@ -1,47 +1,67 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, IconButton, Avatar } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Box,
+  Avatar,
+  Tooltip,
+} from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import LogoutIcon from '@mui/icons-material/Logout'; // Add this import
-import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../redux/slices/authSlice';
+import SchoolIcon from '@mui/icons-material/School';
 
-const Header = ({ handleDrawerToggle }) => {
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-
-  const handleLogout = () => {
-    dispatch(logout());
-    window.location.href = '/login';
-  };
-
+const Header = () => {
   return (
-    <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-      <Toolbar>
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          edge="start"
-          onClick={handleDrawerToggle}
-          sx={{ mr: 2, display: { sm: 'none' } }}
-        >
-          <MenuIcon />
-        </IconButton>
-        <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-          School Management System
-        </Typography>
-        {user && (
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar sx={{ bgcolor: 'secondary.main', mr: 1 }}>
-              {user.first_name?.charAt(0)}
+    <AppBar
+      position="fixed"
+      elevation={3}
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        backgroundColor: '#1565c0',
+      }}
+    >
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        {/* Left Section */}
+        <Box display="flex" alignItems="center">
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            sx={{ mr: 1 }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <SchoolIcon sx={{ mr: 1, fontSize: 28 }} />
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ fontWeight: 'bold' }}
+          >
+            School Management System
+          </Typography>
+        </Box>
+
+        {/* Right Section (Placeholder for profile or actions) */}
+        <Box display="flex" alignItems="center" gap={2}>
+          {/* Future: Notification button can go here */}
+          <Tooltip title="Profile">
+            <Avatar
+              alt="User"
+              src="" // Add user image here if available
+              sx={{
+                width: 36,
+                height: 36,
+                bgcolor: '#fff',
+                color: '#1976d2',
+                fontWeight: 'bold',
+              }}
+            >
+              S
             </Avatar>
-            <Typography variant="subtitle1" sx={{ mr: 2 }}>
-              {user.first_name} {user.last_name}
-            </Typography>
-            <IconButton color="inherit" onClick={handleLogout}>
-              <LogoutIcon />
-            </IconButton>
-          </div>
-        )}
+          </Tooltip>
+        </Box>
       </Toolbar>
     </AppBar>
   );

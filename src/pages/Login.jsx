@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { login } from '../redux/slices/authSlice';
+import { login, setAuthenticated } from '../redux/slices/authSlice';
 import { 
   Container, 
   Box, 
@@ -23,7 +23,7 @@ import {
   LockOutlined,
   Visibility,
   VisibilityOff,
-  Email,
+  Person,
   AdminPanelSettings
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -41,17 +41,38 @@ const defaultTheme = createTheme({
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
   
-  // Refs for form fields
-  const emailRef = useRef(null);
+  const usernameRef = useRef(null);
   const passwordRef = useRef(null);
+
+  // Check for existing token on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      dispatch(setAuthenticated(true));
+      navigate('/dashboard');
+    }
+  }, [dispatch, navigate]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await dispatch(login(formData));
+      
+      if (login.fulfilled.match(result)) {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -60,27 +81,16 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const result = await dispatch(login(formData));
-    if (result.payload) {
-      navigate('/');
-    }
-  };
-
   const handleAdminPanel = () => {
-    // Redirect to Django admin panel
     window.location.href = '/api/admin';
   };
 
-  // Handle Enter key press
   const handleKeyDown = (e, nextFieldRef) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (nextFieldRef && nextFieldRef.current) {
         nextFieldRef.current.focus();
       } else {
-        // If no next field, submit the form
         handleSubmit(e);
       }
     }
@@ -116,10 +126,18 @@ const Login = () => {
               Sign in to your account
             </Typography>
             
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
+            <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
               {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => {}}>
-                  {error}
+                <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
+                  {error.non_field_errors ? (
+                    error.non_field_errors.map((err, i) => (
+                      <div key={i}>{err}</div>
+                    ))
+                  ) : error.message ? (
+                    error.message
+                  ) : (
+                    'Invalid username or password'
+                  )}
                 </Alert>
               )}
               
@@ -127,19 +145,19 @@ const Login = () => {
                 margin="normal"
                 required
                 fullWidth
-                id="email"
-                label="Email Address"
-                name="email"
-                autoComplete="email"
+                id="username"
+                label="Username"
+                name="username"
+                autoComplete="username"
                 autoFocus
-                value={formData.email}
+                value={formData.username}
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, passwordRef)}
-                inputRef={emailRef}
+                inputRef={usernameRef}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Email color="action" />
+                      <Person color="action" />
                     </InputAdornment>
                   ),
                 }}
@@ -155,7 +173,7 @@ const Login = () => {
                 autoComplete="current-password"
                 value={formData.password}
                 onChange={handleChange}
-                onKeyDown={(e) => handleKeyDown(e, null)} // No next field, will submit
+                onKeyDown={(e) => handleKeyDown(e, null)}
                 inputRef={passwordRef}
                 InputProps={{
                   startAdornment: (

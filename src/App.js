@@ -15,7 +15,6 @@ import Students from './pages/Students';
 import Attendance from './pages/Attendance';
 import Exams from './pages/Exams';
 import Login from './pages/Login';
-import PrivateRoute from './components/common/PrivateRoute';
 import './styles/global.css';
 import Register from './pages/Register';
 
@@ -29,7 +28,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register/>} />
 
-            <Route element={<PrivateRoute />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/schools" element={<Schools />} />
@@ -43,7 +41,6 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
 
               </Route>
-            </Route>
           </Routes>
         </Router>
       </ThemeProvider>
