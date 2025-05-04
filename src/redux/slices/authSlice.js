@@ -62,35 +62,42 @@ export const register = createAsyncThunk(
   }
 );
 
+
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      // Get JWT tokens using username and password
-      const response = await api.post(API_ENDPOINTS.auth.jwt_create, {
-        username: credentials.username,
+      // Step 1: Get JWT tokens
+      const tokenResponse = await api.post(API_ENDPOINTS.auth.jwt_create, {
+        email: credentials.email,
         password: credentials.password
       });
 
-      const { access, refresh } = response.data;
+      const { access, refresh } = tokenResponse.data;
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
+      console.log("hiiiiiiiiiiiiiiiiii")
+
+      // Step 2: Get user details
+      const userResponse = await api.get(API_ENDPOINTS.auth.login, {
+        headers: {
+          Authorization: `JWT ${access}`
+        }
+      });
 
       return {
         access,
         refresh,
-        user: {
-          username: credentials.username
-        }
+        user: userResponse.data
       };
 
     } catch (err) {
       console.error("Login error:", err);
       if (err.response?.data) {
-        return rejectWithValue(err.response.data);
+        return rejectWithValue(formatAuthErrors(err.response.data));
       }
       return rejectWithValue({ 
-        message: 'Invalid username or password' 
+        non_field_errors: ['Login failed. Please try again.'] 
       });
     }
   }
@@ -105,14 +112,46 @@ export const refreshToken = createAsyncThunk(
         throw new Error('No refresh token available');
       }
 
-      const response = await api.post(API_ENDPOINTS.auth.refresh, { refresh });
-      localStorage.setItem('access_token', response.data.access);
-      return response.data;
+      const response = await api.post(API_ENDPOINTS.auth.jwt_refresh, { refresh });
+      const newAccessToken = response.data.access;
+      localStorage.setItem('access_token', newAccessToken);
+
+      // Fetch user details with new token
+      const userResponse = await api.get(API_ENDPOINTS.auth.login, {
+        headers: {
+          Authorization: `JWT ${newAccessToken}`
+        }
+      });
+
+      return {
+        access: newAccessToken,
+        user: userResponse.data
+      };
+
     } catch (err) {
-      return rejectWithValue(err.response?.data || { message: 'Token refresh failed' });
+      return rejectWithValue(formatAuthErrors(err.response?.data || { 
+        non_field_errors: ['Session expired. Please login again.'] 
+      }));
     }
   }
 );
+
+// Helper function to format auth errors
+const formatAuthErrors = (errorData) => {
+  if (errorData.detail) {
+    return { non_field_errors: [errorData.detail] };
+  }
+  if (errorData.non_field_errors) {
+    return errorData;
+  }
+  
+  const formattedErrors = {};
+  Object.entries(errorData).forEach(([field, errors]) => {
+    formattedErrors[field] = Array.isArray(errors) ? errors : [errors];
+  });
+  
+  return formattedErrors;
+};
 
 const initialState = {
   user: null,
@@ -148,6 +187,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Registration cases
       .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -159,21 +199,15 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = null;
         state.registrationSuccess = true;
-        
-        if (action.payload.access) {
-          localStorage.setItem('access_token', action.payload.access);
-        }
-        if (action.payload.refresh) {
-          localStorage.setItem('refresh_token', action.payload.refresh);
-        }
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.registrationSuccess = false;
-        state.error = action.payload || { 
-          non_field_errors: ['Registration failed. Please try again.'] 
-        };
+        state.error = action.payload;
       })
+      
+      // Login cases
       .addCase(login.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -183,30 +217,28 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.loading = false;
         state.error = null;
-        
-        localStorage.setItem('access_token', action.payload.access);
-        localStorage.setItem('refresh_token', action.payload.refresh);
         localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || { 
-          message: 'Login failed. Please check your credentials.' 
-        };
+        state.error = action.payload;
       })
+      
+      // Token refresh cases
       .addCase(refreshToken.pending, (state) => {
         state.loading = true;
       })
-      .addCase(refreshToken.fulfilled, (state) => {
+      .addCase(refreshToken.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
+        state.user = action.payload.user;
+        localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
-      .addCase(refreshToken.rejected, (state) => {
+      .addCase(refreshToken.rejected, (state, action) => {
         state.loading = false;
-        state.isAuthenticated = false;
-        state.user = null;
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        state.error = action.payload;
+        // Note: We don't automatically set isAuthenticated to false here
+        // Let the protected routes handle the redirect logic
       });
   },
 });

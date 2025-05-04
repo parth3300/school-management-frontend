@@ -39,8 +39,8 @@ function App() {
                 <Route path="/attendance" element={<Attendance />} />
                 <Route path="/exams" element={<Exams />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-
               </Route>
+
           </Routes>
         </Router>
       </ThemeProvider>

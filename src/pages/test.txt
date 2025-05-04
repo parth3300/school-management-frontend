@@ -1,0 +1,151 @@
+1. Personal Information
+View their profile details:
+
+Personal information (name, email, phone, address, DOB)
+
+Qualification
+
+Joining date
+
+Profile photo
+
+Update their personal information (except sensitive fields like user ID)
+
+2. Class Management
+View all classes they're assigned to teach
+
+See class details:
+
+Class name
+
+Academic year
+
+Student capacity
+
+List of students in each class
+
+View class timetable/schedule (if implemented)
+
+3. Student Information
+View student profiles in their classes:
+
+Basic info (name, admission number)
+
+Contact details
+
+Parent information
+
+Student photo
+
+View academic history of their students
+
+4. Subject Management
+View all subjects they teach
+
+See subject details:
+
+Subject name and code
+
+Description
+
+Classes associated with each subject
+
+(If permissions allow) Create/edit subjects they teach
+
+5. Attendance Management
+Take attendance for their classes
+
+View attendance records:
+
+Daily attendance
+
+Student attendance history
+
+Statistics (present/absent/late percentages)
+
+Edit attendance (with audit trail)
+
+Generate attendance reports
+
+6. Exam & Grading
+View exam schedules they're involved in
+
+Enter marks/grades for their subjects:
+
+Exam results
+
+Subject grades
+
+Remarks
+
+View student performance:
+
+Individual student progress
+
+Class averages
+
+Subject-wise performance
+
+Generate grade reports for their subjects
+
+7. Announcements
+View all announcements relevant to them:
+
+School-wide announcements
+
+Teacher-specific announcements
+
+Class/subject-specific announcements
+
+Create announcements (if permissions allow) for:
+
+Their classes
+
+Their subjects
+
+View announcement details:
+
+Priority level
+
+Time period
+
+Attachments
+
+8. School Information
+View basic school information:
+
+School name, logo
+
+Contact details
+
+Academic calendar
+
+View current academic year details
+
+9. Dashboard & Analytics
+Overview dashboard showing:
+
+Upcoming classes
+
+Recent attendance
+
+Pending grade entries
+
+Important announcements
+
+Subject/class performance analytics
+
+Attendance trends for their classes
+
+Data Access Restrictions:
+CANNOT see:
+
+Other teachers' personal information (unless admin)
+
+Classes they're not assigned to
+
+Students not in their classes
+
+School financial/administrative data
+
+Sensitive system settings

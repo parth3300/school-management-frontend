@@ -1,10 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
+import API_ENDPOINTS from '../../api/endpoints';
 
 export const fetchAnnouncements = createAsyncThunk(
   'announcements/fetchAnnouncements',
   async () => {
-    const response = await api.get('/announcements/');
+    const response = await api.get(API_ENDPOINTS.announcements);
     return response.data;
   }
 );

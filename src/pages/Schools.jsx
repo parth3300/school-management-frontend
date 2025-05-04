@@ -17,17 +17,149 @@ import {
   IconButton,
   Tooltip,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SchoolForm from '../components/schools/SchoolForm';
 import {
   fetchSchools,
   createSchool,
-  updateSchool,
-  deleteSchool,
+  updateSchool
 } from '../redux/slices/schoolSlice';
+
+// SchoolForm component (moved inside the s ame file for testing)
+const SchoolForm = ({ open, onClose, onSubmit, school }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    establishedYear: ''
+  });
+
+  useEffect(() => {
+    if (school) {
+      setFormData({
+        name: school.name || '',
+        address: school.address || '',
+        phone: school.phone || '',
+        email: school.email || '',
+        website: school.website || '',
+        establishedYear: school.establishedYear || ''
+      });
+    } else {
+      setFormData({
+        name: '',
+        address: '',
+        phone: '',
+        email: '',
+        website: '',
+        establishedYear: ''
+      });
+    }
+  }, [school]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmitForm = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        {school ? 'Edit School' : 'Add New School'}
+      </DialogTitle>
+      <DialogContent>
+        <form onSubmit={handleSubmitForm}>
+          <Box sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="School Name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  required
+                  multiline
+                  rows={3}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Website"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Established Year"
+                  name="establishedYear"
+                  type="number"
+                  value={formData.establishedYear}
+                  onChange={handleChange}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </form>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button 
+          onClick={handleSubmitForm} 
+          variant="contained"
+          color="primary"
+        >
+          {school ? 'Update' : 'Create'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
 const Schools = () => {
   const dispatch = useDispatch();
@@ -41,18 +173,17 @@ const Schools = () => {
   }, [dispatch]);
 
   const handleSubmit = async (schoolData) => {
-    if (currentSchool) {
-      await dispatch(updateSchool({ id: currentSchool.id, data: schoolData }));
-    } else {
-      await dispatch(createSchool(schoolData));
-    }
-    setOpenForm(false);
-    setCurrentSchool(null);
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this school?')) {
-      await dispatch(deleteSchool(id));
+    try {
+      if (currentSchool) {
+        await dispatch(updateSchool({ id: currentSchool.id, data: schoolData }));
+      } else {
+        await dispatch(createSchool(schoolData));
+      }
+      setOpenForm(false);
+      setCurrentSchool(null);
+      dispatch(fetchSchools()); // Refresh the list after update
+    } catch (err) {
+      console.error('Error saving school:', err);
     }
   };
 
@@ -126,14 +257,6 @@ const Schools = () => {
                               color="primary"
                             >
                               <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              onClick={() => handleDelete(school.id)}
-                              color="error"
-                            >
-                              <DeleteIcon />
                             </IconButton>
                           </Tooltip>
                         </TableCell>

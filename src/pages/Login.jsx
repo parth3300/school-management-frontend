@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { login, setAuthenticated } from '../redux/slices/authSlice';
+import { clearAuthError, login, setAuthenticated } from '../redux/slices/authSlice';
 import { 
   Container, 
   Box, 
@@ -27,6 +27,7 @@ import {
   AdminPanelSettings
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { formatDjangoErrors } from '../components/common/errorHelper';
 
 const defaultTheme = createTheme({
   palette: {
@@ -41,7 +42,7 @@ const defaultTheme = createTheme({
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -49,21 +50,26 @@ const Login = () => {
   const navigate = useNavigate();
   const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
   
-  const usernameRef = useRef(null);
+  const emailRef = useRef(null);
   const passwordRef = useRef(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Check for existing token on component mount
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      dispatch(setAuthenticated(true));
+    if (isAuthenticated) {
       navigate('/dashboard');
     }
-  }, [dispatch, navigate]);
+  }, [isAuthenticated, navigate]);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+
     try {
+      // Clear previous errors
+      dispatch(clearAuthError());
+      
       const result = await dispatch(login(formData));
       
       if (login.fulfilled.match(result)) {
@@ -71,6 +77,8 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Login error:", err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -127,33 +135,26 @@ const Login = () => {
             </Typography>
             
             <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
-              {error && (
-                <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
-                  {error.non_field_errors ? (
-                    error.non_field_errors.map((err, i) => (
-                      <div key={i}>{err}</div>
-                    ))
-                  ) : error.message ? (
-                    error.message
-                  ) : (
-                    'Invalid username or password'
-                  )}
-                </Alert>
-              )}
+            {error && (
+              <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
+                {formatDjangoErrors(error)}
+              </Alert>
+            )}
               
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                id="username"
-                label="Username"
-                name="username"
-                autoComplete="username"
+                id="email"
+                label="Email"
+                name="email"
+                type="email"
+                autoComplete="email"
                 autoFocus
-                value={formData.username}
+                value={formData.email}
                 onChange={handleChange}
                 onKeyDown={(e) => handleKeyDown(e, passwordRef)}
-                inputRef={usernameRef}
+                inputRef={emailRef}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">

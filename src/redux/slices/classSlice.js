@@ -1,77 +1,69 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+// src/redux/slices/classSlice.js
+import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
+import { createApiSlice } from '../../utils/sliceHelpers';
 
-export const fetchClasses = createAsyncThunk('classes/fetchClasses', async () => {
-  const response = await api.get(API_ENDPOINTS.classes);
-  return response.data;
-});
+const classEndpoints = {
+  getAll: API_ENDPOINTS.classes.getAll,
+  create: API_ENDPOINTS.classes.create,
+  update: (id) => API_ENDPOINTS.classes.update(id),
+  delete: (id) => API_ENDPOINTS.classes.delete(id),
+  getStudents: (classId) => API_ENDPOINTS.classes.getStudents(classId)
+};
 
-export const createClass = createAsyncThunk(
-  'classes/createClass',
-  async (classData) => {
-    const response = await api.post(API_ENDPOINTS.classes, classData);
-    return response.data;
-  }
-);
-
-export const updateClass = createAsyncThunk(
-  'classes/updateClass',
-  async ({ id, data }) => {
-    const response = await api.patch(`${API_ENDPOINTS.classes}${id}/`, data);
-    return response.data;
-  }
-);
-
-export const deleteClass = createAsyncThunk(
-  'classes/deleteClass',
-  async (id) => {
-    await api.delete(`${API_ENDPOINTS.classes}${id}/`);
-    return id;
-  }
-);
-
-const classSlice = createSlice({
+const { reducer, actions } = createApiSlice({
   name: 'classes',
+  api,
+  endpoints: classEndpoints,
   initialState: {
-    classes: [],
-    loading: false,
-    error: null,
+    // Class-specific initial state
+    activeClasses: [],
+    archivedClasses: [],
+    currentClassStudents: [] // For storing students of a specific class
   },
-  reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: (builder, { fetchThunk }) => {
+    // Custom reducers for classes
+    builder.addCase(fetchThunk.fulfilled, (state, action) => {
+      // Separate active and archived classes
+      state.activeClasses = action.payload.filter(cls => !cls.isArchived);
+      state.archivedClasses = action.payload.filter(cls => cls.isArchived);
+      state.data = action.payload; // Still keep all classes in data
+    });
+
+    // Additional thunk for getting students in a class
+    const fetchClassStudents = createAsyncThunk(
+      'classes/fetchStudents',
+      async (classId) => {
+        const response = await api.get(classEndpoints.getStudents(classId));
+        return { classId, students: response.data };
+      }
+    );
+
     builder
-      .addCase(fetchClasses.pending, (state) => {
+      .addCase(fetchClassStudents.pending, (state) => {
         state.loading = true;
-        state.error = null;
       })
-      .addCase(fetchClasses.fulfilled, (state, action) => {
+      .addCase(fetchClassStudents.fulfilled, (state, action) => {
         state.loading = false;
-        state.classes = action.payload;
+        state.currentClassStudents = action.payload.students;
       })
-      .addCase(fetchClasses.rejected, (state, action) => {
+      .addCase(fetchClassStudents.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
-      })
-      .addCase(createClass.fulfilled, (state, action) => {
-        state.classes.push(action.payload);
-      })
-      .addCase(updateClass.fulfilled, (state, action) => {
-        const index = state.classes.findIndex(
-          (cls) => cls.id === action.payload.id
-        );
-        if (index !== -1) {
-          state.classes[index] = action.payload;
-        }
-      })
-      .addCase(deleteClass.fulfilled, (state, action) => {
-        state.classes = state.classes.filter(
-          (cls) => cls.id !== action.payload
-        );
       });
-  },
+
+    return { ...actions, fetchStudents: fetchClassStudents };
+  }
 });
 
-export const selectClasses = (state) => state.classes;
+export const { 
+  fetch: fetchClasses, 
+  create: createClass, 
+  update: updateClass, 
+  delete: deleteClass,
+  fetchStudents: fetchClassStudents,
+  reset 
+} = actions;
 
-export default classSlice.reducer;
+export default reducer;

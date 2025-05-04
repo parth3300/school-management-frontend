@@ -1,77 +1,108 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+// src/redux/slices/schoolSlice.js
+import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
+import { createApiSlice } from '../../utils/sliceHelpers';
 
-export const fetchSchools = createAsyncThunk('schools/fetchSchools', async () => {
-  const response = await api.get(API_ENDPOINTS.schools);
-  return response.data;
-});
+const schoolEndpoints = {
+  get: API_ENDPOINTS.school.get,
+  create: API_ENDPOINTS.school.create,
+  update: API_ENDPOINTS.school.update,
+  uploadLogo: API_ENDPOINTS.school.uploadLogo,
+  getStats: API_ENDPOINTS.school.getStats
+};
 
-export const createSchool = createAsyncThunk(
-  'schools/createSchool',
-  async (schoolData) => {
-    const response = await api.post(API_ENDPOINTS.schools, schoolData);
-    return response.data;
-  }
-);
-
-export const updateSchool = createAsyncThunk(
-  'schools/updateSchool',
-  async ({ id, data }) => {
-    const response = await api.patch(`${API_ENDPOINTS.schools}${id}/`, data);
-    return response.data;
-  }
-);
-
-export const deleteSchool = createAsyncThunk(
-  'schools/deleteSchool',
-  async (id) => {
-    await api.delete(`${API_ENDPOINTS.schools}${id}/`);
-    return id;
-  }
-);
-
-const schoolSlice = createSlice({
-  name: 'schools',
+const { reducer, actions } = createApiSlice({
+  name: 'school',
+  api,
+  endpoints: schoolEndpoints,
   initialState: {
-    schools: [],
-    loading: false,
-    error: null,
+    // School-specific initial state
+    data: null, // Single school object instead of array
+    stats: {
+      totalStudents: 0,
+      totalTeachers: 0,
+      totalClasses: 0
+    },
+    logoUploading: false
   },
-  reducers: {},
   extraReducers: (builder) => {
+    // Custom thunk for uploading school logo
+    const uploadLogo = createAsyncThunk(
+      'school/uploadLogo',
+      async (file) => {
+        const formData = new FormData();
+        formData.append('logo', file);
+        const response = await api.post(schoolEndpoints.uploadLogo, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        return response.data.logoUrl;
+      }
+    );
+
+    // Custom thunk for fetching school stats
+    const fetchStats = createAsyncThunk(
+      'school/fetchStats',
+      async () => {
+        const response = await api.get(schoolEndpoints.getStats);
+        return response.data;
+      }
+    );
+
     builder
-      .addCase(fetchSchools.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      // Handle logo upload
+      .addCase(uploadLogo.pending, (state) => {
+        state.logoUploading = true;
       })
-      .addCase(fetchSchools.fulfilled, (state, action) => {
-        state.loading = false;
-        state.schools = action.payload;
-      })
-      .addCase(fetchSchools.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(createSchool.fulfilled, (state, action) => {
-        state.schools.push(action.payload);
-      })
-      .addCase(updateSchool.fulfilled, (state, action) => {
-        const index = state.schools.findIndex(
-          (school) => school.id === action.payload.id
-        );
-        if (index !== -1) {
-          state.schools[index] = action.payload;
+      .addCase(uploadLogo.fulfilled, (state, action) => {
+        state.logoUploading = false;
+        if (state.data) {
+          state.data.logoUrl = action.payload;
         }
       })
-      .addCase(deleteSchool.fulfilled, (state, action) => {
-        state.schools = state.schools.filter(
-          (school) => school.id !== action.payload
-        );
+      .addCase(uploadLogo.rejected, (state, action) => {
+        state.logoUploading = false;
+        state.error = action.error.message;
+      })
+      
+      // Handle stats fetching
+      .addCase(fetchStats.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchStats.fulfilled, (state, action) => {
+        state.stats = action.payload;
       });
-  },
+
+    return { 
+      ...actions, 
+      uploadLogo, 
+      fetchStats,
+      // Override fetch since we use get instead of getAll
+      fetch: createAsyncThunk(
+        'school/fetch',
+        async () => {
+          const response = await api.get(schoolEndpoints.get);
+          return response.data;
+        }
+      )
+    };
+  }
 });
 
-export const selectSchools = (state) => state.schools;
+// Custom selectors
+export const selectSchool = (state) => state.school.data;
+export const selectSchoolStats = (state) => state.school.stats;
+export const selectLogoUploading = (state) => state.school.logoUploading;
 
-export default schoolSlice.reducer;
+export const { 
+  fetch: fetchSchools, 
+  create: createSchool, 
+  update: updateSchool,
+  uploadLogo,
+  fetchStats,
+  reset 
+} = actions;
+
+export default reducer;
