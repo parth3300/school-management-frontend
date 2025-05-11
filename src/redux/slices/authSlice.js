@@ -5,6 +5,13 @@ import API_ENDPOINTS from '../../api/endpoints';
 export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
+console.log(userData);
+    if(userData.user_type === "Visitor"){
+      delete userData.user_type
+      const profileResponse = await api.post(API_ENDPOINTS.auth.register, userData);
+      return profileResponse.data;
+
+    }
     try {
       const profileEndpoint = userData.user_type === 'teacher' 
         ? API_ENDPOINTS.teachers 
@@ -68,6 +75,8 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       // Step 1: Get JWT tokens
+      console.log(credentials);
+      
       const tokenResponse = await api.post(API_ENDPOINTS.auth.jwt_create, {
         email: credentials.email,
         password: credentials.password

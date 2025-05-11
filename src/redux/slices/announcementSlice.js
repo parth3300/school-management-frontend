@@ -7,7 +7,6 @@ import { createApiSlice } from '../../utils/sliceHelpers';
 const announcementEndpoints = {
   getAll: API_ENDPOINTS.announcements.getAll,
   create: API_ENDPOINTS.announcements.create,
-  create: API_ENDPOINTS.announcements.create,
   update: (id) => API_ENDPOINTS.announcements.update(id),
   delete: (id) => API_ENDPOINTS.announcements.delete(id),
 };

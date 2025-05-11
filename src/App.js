@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
@@ -21,9 +21,22 @@ import TeacherLogin from './pages/TeacherLogin';
 import AdminLogin from './pages/AdminLogin';
 import StudentLogin from './pages/StudentLogin';
 import VisitorLogin from './pages/VisitorLogin';
+import Loader from './pages/Loader';
 
 
 function App() {
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500); // Adjust delay as needed
+    return () => clearTimeout(timeout);
+  }, []);
+
+  if (loading) return <Loader />;
+
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
@@ -46,6 +59,7 @@ function App() {
                 <Route path="/attendance" element={<Attendance />} />
                 <Route path="/exams" element={<Exams />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/academic-years" element={<AcademicYears />} />
               </Route>
 
           </Routes>

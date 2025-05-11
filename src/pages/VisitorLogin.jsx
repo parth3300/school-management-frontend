@@ -4,10 +4,14 @@ import AuthCard from './AuthCard';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import API_ENDPOINTS from '../api/endpoints';
+import { login, register } from '../redux/slices/authSlice';
+import { useDispatch } from 'react-redux';
+import GlobalLogin from './GlobalLogin';
 
 const VisitorLogin = () => {
   const navigate = useNavigate();
   const [flipped, setFlipped] = useState(false); // << control flip here
+  const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -25,9 +29,19 @@ const VisitorLogin = () => {
 
   const handleRegister = async () => {
     try {
-      await api.post(API_ENDPOINTS.auth.register, formData);
-      console.log('Registration successful');
-      setFlipped(false); // Flip to login after successful registration
+
+      
+          const result = await dispatch(register({
+            ...formData,
+            user_type: "Visitor"
+          }));
+          
+          // Only navigate if registration was successful
+          if (register.fulfilled.match(result)) {
+              setFlipped(false); // Flip to login after successful registration
+          }
+
+
     } catch (err) {
       console.error('Registration error:', err);
     }
@@ -45,8 +59,13 @@ const VisitorLogin = () => {
     }));
   };
 
-  const handleLogin = () => {
-    console.log('Logging in with:', loginData);
+  const handleLogin = async () => {
+        console.log('Logging in with:', loginData);
+
+        const result = await dispatch(login(loginData));
+        if (login.fulfilled.match(result)) {
+          navigate('/dashboard');
+        }
     // api.post('/login', loginData);
   };
 
@@ -62,49 +81,8 @@ const VisitorLogin = () => {
   };
 
   // Login Form (common to all)
-  const loginForm = (
-    <>
-      <Typography variant="h5" gutterBottom>Login</Typography>
-      <TextField
-        name="email"
-        label="Email"
-        type="email"
-        fullWidth
-        margin="normal"
-        value={loginData.email}
-        onChange={handleLoginChange}
-        onKeyDown={(e) => handleKeyPress(e, document.getElementById('login-password'))} // Focus password field
-      />
-      <TextField
-        id="login-password"
-        name="password"
-        label="Password"
-        type="password"
-        fullWidth
-        margin="normal"
-        value={loginData.password}
-        onChange={handleLoginChange}
-        onKeyDown={(e) => handleKeyPress(e, null)} // Submit form if Enter pressed
-      />
-      <Button
-        variant="contained"
-        color="success"
-        fullWidth
-        sx={{ mt: 2 }}
-        onClick={handleLogin}
-      >
-        Login
-      </Button>
-      <Button
-        fullWidth
-        variant="text"
-        sx={{ mt: 1 }}
-        onClick={() => navigate('/public-dashboard')}
-      >
-        Continue as Visitor
-      </Button>
-    </>
-  );
+  const loginForm = <GlobalLogin userType="Visitor" />
+
 
   // Visitor registration form
   const registerForm = (

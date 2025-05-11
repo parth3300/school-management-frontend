@@ -1,21 +1,11 @@
 // src/pages/StudentLogin.jsx
-import React from 'react';
 import { TextField, Button, Typography, Container } from '@mui/material';
 import AuthCard from './AuthCard';
+import GlobalLogin from './GlobalLogin';
 
 const StudentLogin = () => {
-  const loginForm = (
-    <>
-      <Typography variant="h5" gutterBottom>Student Login</Typography>
-      <TextField label="Email" fullWidth margin="normal" />
-      <TextField label="Password" type="password" fullWidth margin="normal" />
-      <Button variant="contained" fullWidth size="large" sx={{ mt: 2 }}>
-        Login
-      </Button>
-    </>
-  );
+  const loginForm = <GlobalLogin userType="Student"/>
 
-  console.log("Stttttttttttttttttttttt");
   
   const registerForm = (
     <>

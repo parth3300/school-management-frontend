@@ -33,6 +33,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { styled } from '@mui/material/styles';
 import api from '../api/axios';
 import API_ENDPOINTS from '../api/endpoints';
+import { fetchSchools } from '../redux/slices/schoolSlice';
 
 const StyledCard = styled(motion.div)(({ theme }) => ({
   height: '100%',
@@ -78,14 +79,6 @@ const AcademicYears = () => {
     }
   };
 
-  const fetchSchools = async () => {
-    try {
-      const response = await api.get(API_ENDPOINTS.school.get);
-      setSchools(response.data);
-    } catch (error) {
-      console.error('Error fetching schools:', error);
-    }
-  };
 
   const handleOpenDialog = (year = null) => {
     if (year) {
