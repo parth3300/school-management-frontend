@@ -57,7 +57,7 @@ const Classes = () => {
   const fetchClasses = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, classes: true }));
-      const response = await api.get(API_ENDPOINTS.classes);
+      const response = await api.get(API_ENDPOINTS.classes.getAll);
       setClasses(response.data);
     } catch (error) {
       setError('Failed to fetch classes. Please try again later.');
@@ -70,7 +70,7 @@ const Classes = () => {
   const fetchTeachers = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, teachers: true }));
-      const response = await api.get(API_ENDPOINTS.teachers);
+      const response = await api.get(API_ENDPOINTS.teachers.getAll);
       setTeachers(response.data);
     } catch (error) {
       console.error('Error fetching teachers:', error);
@@ -82,7 +82,7 @@ const Classes = () => {
   const fetchAcademicYears = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, years: true }));
-      const response = await api.get(API_ENDPOINTS.academicYears);
+      const response = await api.get(API_ENDPOINTS.academicYears.getAll);
       setAcademicYears(response.data);
     } catch (error) {
       console.error('Error fetching academic years:', error);
@@ -169,7 +169,7 @@ const Classes = () => {
       };
 
       if (selectedClass) {
-        await api.put(`${API_ENDPOINTS.classes}${selectedClass.id}/`, payload);
+        await api.put(API_ENDPOINTS.classes.update(selectedClass.id), payload);
       } else {
         await api.post(API_ENDPOINTS.classes, payload);
       }
@@ -191,7 +191,7 @@ const Classes = () => {
 
     try {
       setLoading(prev => ({ ...prev, classes: true }));
-      await api.delete(`${API_ENDPOINTS.classes}${classId}/`);
+      await api.delete(`${API_ENDPOINTS.classes.delete(classId)}`);
       await fetchClasses();
     } catch (error) {
       const errorMessage = error.response?.data?.message || 

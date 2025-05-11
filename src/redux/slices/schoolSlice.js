@@ -5,6 +5,7 @@ import API_ENDPOINTS from '../../api/endpoints';
 import { createApiSlice } from '../../utils/sliceHelpers';
 
 const schoolEndpoints = {
+  getAll: API_ENDPOINTS.school.getAll,
   get: API_ENDPOINTS.school.get,
   create: API_ENDPOINTS.school.create,
   update: API_ENDPOINTS.school.update,
@@ -104,5 +105,6 @@ export const {
   fetchStats,
   reset 
 } = actions;
+console.log("schools",actions);
 
 export default reducer;

@@ -1,118 +1,133 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
-  Box,
-  Avatar,
-  Tooltip,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Divider,
+  AppBar, Toolbar, Typography, IconButton, Box, Avatar, Tooltip,
+  Menu, MenuItem, ListItemIcon, Divider, useMediaQuery
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import SchoolIcon from '@mui/icons-material/School';
-import Logout from '@mui/icons-material/Logout';
-import Settings from '@mui/icons-material/Settings';
-import AccountCircle from '@mui/icons-material/AccountCircle';
+import { useTheme } from '@mui/material/styles';
+import {
+  Menu as MenuIcon,
+  School as SchoolIcon,
+  Logout,
+  Settings,
+  AccountCircle,
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
 
-const Header = ({ onMenuToggle }) => {
+const Header = ({ onMenuToggle = () => {} }) => {
   const [anchorEl, setAnchorEl] = useState(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const open = Boolean(anchorEl);
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
+  const handleClick = (event) => setAnchorEl(event.currentTarget);
+  const handleClose = () => setAnchorEl(null);
   const handleLogout = () => {
-    // Add your logout logic here
     console.log('User logged out');
     handleClose();
   };
 
+  const menuItems = useMemo(() => [
+    { label: 'Profile', icon: <AccountCircle fontSize="small" />, action: handleClose },
+    { label: 'Settings', icon: <Settings fontSize="small" />, action: handleClose },
+  ], []);
+
   return (
     <AppBar
       position="fixed"
-      elevation={3}
+      elevation={4}
       sx={{
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: '#1565c0',
+        background: 'linear-gradient(to right, #1976d2, #42a5f5)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
       }}
+      role="banner"
     >
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        {/* Left Section */}
+        {/* Left Side: Logo & Title */}
         <Box display="flex" alignItems="center">
           <IconButton
             edge="start"
-            color="inherit"
-            aria-label="menu"
-            sx={{ mr: 1 }}
+            aria-label="Open navigation menu"
             onClick={onMenuToggle}
+            sx={{ mr: 1 }}
+            size="large"
           >
-            <MenuIcon />
+            <MenuIcon sx={{ color: '#fff' }} />
           </IconButton>
-          <SchoolIcon sx={{ mr: 1, fontSize: 28 }} />
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            sx={{ fontWeight: 'bold' }}
-          >
-            School Management System
-          </Typography>
-        </Box>
 
-        {/* Right Section */}
-        <Box display="flex" alignItems="center" gap={2}>
-          <Tooltip title="Account settings">
-            <IconButton
-              onClick={handleClick}
-              size="small"
-              sx={{ ml: 2 }}
-              aria-controls={open ? 'account-menu' : undefined}
-              aria-haspopup="true"
-              aria-expanded={open ? 'true' : undefined}
-            >
-              <Avatar
-                alt="User"
-                src="" // Add user image here if available
+          {!isMobile && (
+            <>
+              <SchoolIcon sx={{ color: 'white', mr: 1 }} />
+              <Typography
+                variant="h6"
                 sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: '#fff',
-                  color: '#1976d2',
-                  fontWeight: 'bold',
+                  fontWeight: 700,
+                  background: 'linear-gradient(to right, #ffffff, #d1ecf1)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
                 }}
               >
-                S
-              </Avatar>
-            </IconButton>
+                School Management System
+              </Typography>
+            </>
+          )}
+        </Box>
+
+        {/* Right Side: Avatar with Menu */}
+        <Box display="flex" alignItems="center" gap={2}>
+          <Tooltip title="Account Settings">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <IconButton
+                onClick={handleClick}
+                size="small"
+                sx={{
+                  p: 0,
+                  borderRadius: '50%',
+                  border: '2px solid white',
+                }}
+                aria-label="User avatar"
+                aria-controls={open ? 'account-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={open ? 'true' : undefined}
+              >
+                <Avatar
+                  alt="User"
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    bgcolor: 'white',
+                    color: '#1976d2',
+                    fontWeight: 700,
+                  }}
+                >
+                  S
+                </Avatar>
+              </IconButton>
+            </motion.div>
           </Tooltip>
         </Box>
       </Toolbar>
 
-      {/* Profile Dropdown Menu */}
+      {/* Dropdown Menu */}
       <Menu
         anchorEl={anchorEl}
         id="account-menu"
         open={open}
         onClose={handleClose}
-        onClick={handleClose}
         PaperProps={{
-          elevation: 0,
+          elevation: 3,
           sx: {
-            overflow: 'visible',
-            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
             mt: 1.5,
+            borderRadius: 2,
+            minWidth: 180,
+            overflow: 'visible',
+            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))',
             '& .MuiAvatar-root': {
-              width: 32,
-              height: 32,
+              width: 30,
+              height: 30,
               ml: -0.5,
               mr: 1,
             },
@@ -133,23 +148,15 @@ const Header = ({ onMenuToggle }) => {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <AccountCircle fontSize="small" />
-          </ListItemIcon>
-          Profile
-        </MenuItem>
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Settings
-        </MenuItem>
+        {menuItems.map((item, i) => (
+          <MenuItem key={i} onClick={item.action}>
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            {item.label}
+          </MenuItem>
+        ))}
         <Divider />
         <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <Logout fontSize="small" />
-          </ListItemIcon>
+          <ListItemIcon><Logout fontSize="small" /></ListItemIcon>
           Logout
         </MenuItem>
       </Menu>

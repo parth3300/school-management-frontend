@@ -9,7 +9,7 @@ const teacherEndpoints = {
   create: API_ENDPOINTS.teachers.create,
   update: (id) => API_ENDPOINTS.teachers.update(id),
   delete: (id) => API_ENDPOINTS.teachers.delete(id),
-  getClasses: API_ENDPOINTS.teacher.classes.base // Add this line
+  getClasses: API_ENDPOINTS.teachers.classes.base // Add this line
 };
 
 const { reducer, actions } = createApiSlice({
@@ -63,6 +63,7 @@ const { reducer, actions } = createApiSlice({
 
 // Selectors
 export const selectTeacherClasses = (state) => state.teachers.teacherClasses;
+export const selectCurrentTeacher = (state) => state.teachers.data;
 export const selectClassesLoading = (state) => state.teachers.classesLoading;
 export const selectClassesError = (state) => state.teachers.classesError;
 

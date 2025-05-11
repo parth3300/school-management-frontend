@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   Button,
-  Avatar,
   CircularProgress,
   List,
   ListItem,
@@ -19,11 +18,15 @@ import {
   useMediaQuery,
   Chip,
   Paper,
-  LinearProgress
+  LinearProgress,
+  Badge,
+  Tooltip,
+  IconButton,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Announcement,
-  Person,
   Class,
   People,
   Assignment,
@@ -31,15 +34,28 @@ import {
   Today,
   BarChart,
   EventNote,
-  Grade
+  Grade,
+  Notifications,
+  Refresh,
+  MoreVert,
+  ArrowForward,
+  SupervisedUserCircle,
+  Person,
+  School as SchoolIcon
 } from '@mui/icons-material';
-import { fetchAnnouncements } from '../redux/slices/announcementSlice';
-import { fetchTeacherClasses } from '../redux/slices/teacherSlice';
-import { fetchTodayAttendance } from '../redux/slices/attendanceSlice';
-import { fetchExamResultsSummary } from '../redux/slices/examResultsSlice';
-import { motion } from 'framer-motion';
+import { fetchAnnouncements, selectLatestAnnouncements } from '../redux/slices/announcementSlice';
+import { fetchTeacherClasses, selectCurrentTeacher, selectTeacherClasses } from '../redux/slices/teacherSlice';
+import { fetchTodayAttendance, selectTodayAttendance } from '../redux/slices/attendanceSlice';
+import { fetchExamResultsSummary, selectExamResultsSummary } from '../redux/slices/examResultsSlice';
+import { fetchSchools, selectSchool } from '../redux/slices/schoolSlice';
+import { motion, AnimatePresence } from 'framer-motion';
 import { styled } from '@mui/material/styles';
+import { selectExamSchedule } from '../redux/slices/examSlice';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import API_ENDPOINTS from '../api/endpoints';
+
+dayjs.extend(relativeTime);
 
 // Styled Components
 const GradientCard = styled(Card)(({ theme }) => ({
@@ -47,27 +63,77 @@ const GradientCard = styled(Card)(({ theme }) => ({
     ? 'linear-gradient(145deg, #2d2d2d 0%, #1e1e1e 100%)'
     : 'linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%)',
   borderRadius: '16px',
-  boxShadow: theme.shadows[4],
+  boxShadow: theme.shadows[2],
   transition: 'all 0.3s ease',
   '&:hover': {
     transform: 'translateY(-5px)',
-    boxShadow: theme.shadows[8],
+    boxShadow: theme.shadows[6],
   },
   height: '100%',
   cursor: 'pointer',
+  position: 'relative',
+  overflow: 'hidden',
+  '&:before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: theme.palette.primary.main,
+  }
 }));
 
 const StatCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2),
-  borderRadius: '12px',
+  padding: theme.spacing(2.5),
+  borderRadius: '14px',
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(2),
   transition: 'all 0.3s ease',
+  position: 'relative',
+  overflow: 'hidden',
   '&:hover': {
     transform: 'translateY(-3px)',
     boxShadow: theme.shadows[4],
+    '&:after': {
+      opacity: 0.1,
+    }
   },
+  '&:after': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: theme.palette.primary.main,
+    opacity: 0,
+    transition: 'opacity 0.3s ease',
+  }
+}));
+
+const PulseDot = styled('div')(({ theme }) => ({
+  width: '8px',
+  height: '8px',
+  borderRadius: '50%',
+  background: theme.palette.success.main,
+  marginRight: theme.spacing(1),
+  animation: 'pulse 1.5s infinite',
+  '@keyframes pulse': {
+    '0%': {
+      transform: 'scale(0.95)',
+      boxShadow: `0 0 0 0 ${theme.palette.success.main}80`
+    },
+    '70%': {
+      transform: 'scale(1)',
+      boxShadow: `0 0 0 8px ${theme.palette.success.main}00`
+    },
+    '100%': {
+      transform: 'scale(0.95)',
+      boxShadow: `0 0 0 0 ${theme.palette.success.main}00`
+    }
+  }
 }));
 
 const Dashboard = () => {
@@ -82,28 +148,32 @@ const Dashboard = () => {
     totalClasses: 0,
     totalStudents: 0,
     attendanceRate: 0,
-    pendingGrades: 0
+    pendingGrades: 0,
+    unreadAnnouncements: 0
   });
+  const [lastRefresh, setLastRefresh] = useState(dayjs());
+  const [activeTab, setActiveTab] = useState(0);
+  const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
 
-  // Redux state
-  const authState = useSelector((state) => state.auth || {});
-  const announcementState = useSelector((state) => state.announcement || {});
-  const teacherState = useSelector((state) => state.teacher || {});
-  const attendanceState = useSelector((state) => state.attendance || {});
-  const examState = useSelector((state) => state.exam || {});
+  // Redux state selectors with proper initialization
+  const authState = useSelector((state) => state.auth);
+  const announcements = useSelector((state) => state.announcements.data) || [];
+  const teacherState = useSelector(selectTeacherClasses) || {};
+  const attendanceState = useSelector(selectTodayAttendance) || {};
+  const examResultsSummary = useSelector(selectExamResultsSummary) || {};
+  const schoolState = useSelector(selectSchool) || {};
 
-  const { 
-    user = null, 
-    isAuthenticated = false,
-    teacherProfile = null
-  } = authState;
+  console.log("useSelector((state) => state.announcements.data)",useSelector((state) => state.announcements.data));
   
+  // Destructure with proper fallbacks
   const { 
-    announcements = [], 
-    loading: announcementsLoading = false,
-    error: announcementsError = null
-  } = announcementState;
-
+    user = {}, 
+    isAuthenticated = false,
+    isAdmin = false,
+    isTeacher = false,
+    isStudent = false
+  } = authState || {};
+  
   const {
     classes = [],
     loading: classesLoading = false,
@@ -111,17 +181,56 @@ const Dashboard = () => {
   } = teacherState;
 
   const {
-    stats: attendanceStats = null,
+    stats: attendanceStats = {},
     loading: attendanceLoading = false,
     error: attendanceError = null
   } = attendanceState;
 
   const {
-    summary: examSummary = null,
+    summary: examSummary = {},
     loading: examLoading = false,
     error: examError = null
-  } = examState;
+  } = examResultsSummary;
 
+  // Filter announcements based on user role
+  useEffect(() => {
+    if (!announcements.length) return;
+
+    let filtered = [];
+    
+    if (isAdmin) {
+      // Admins see all announcements
+      filtered = announcements;
+    } else if (isTeacher) {
+      // Teachers see teacher and all announcements
+      filtered = announcements.filter(ann => 
+        ann.audience === 'TEA' || ann.audience === 'ALL'
+      );
+    } else if (isStudent) {
+      // Students see student and all announcements
+      filtered = announcements.filter(ann => 
+        ann.audience === 'STU' || ann.audience === 'ALL'
+      );
+    }
+
+    setFilteredAnnouncements(filtered);
+  }, [announcements, isAdmin, isTeacher, isStudent]);
+
+  // Memoized data calculations
+  const calculateStats = useCallback(() => {
+    const totalStudents = classes.reduce((acc, cls) => acc + (cls.students_count || 0), 0);
+    const unreadAnnouncements = filteredAnnouncements.filter(a => !a.read).length;
+    
+    return {
+      totalClasses: classes.length,
+      totalStudents,
+      attendanceRate: attendanceStats.average_attendance_rate || 0,
+      pendingGrades: examSummary.pending_grades || 0,
+      unreadAnnouncements
+    };
+  }, [classes, filteredAnnouncements, attendanceStats, examSummary]);
+
+  // Data loading effect
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -130,21 +239,16 @@ const Dashboard = () => {
 
     const loadDashboardData = async () => {
       try {
+        setLoading(true);
         await Promise.all([
           dispatch(fetchAnnouncements()),
           dispatch(fetchTeacherClasses()),
           dispatch(fetchTodayAttendance()),
-          dispatch(fetchExamResultsSummary())
+          dispatch(fetchExamResultsSummary()),
+          dispatch(fetchSchools())
         ]);
 
-        // Calculate summary stats
-        const totalStudents = classes.reduce((acc, cls) => acc + (cls.students_count || 0), 0);
-        setStats({
-          totalClasses: classes.length,
-          totalStudents,
-          attendanceRate: attendanceStats?.average_attendance_rate || 0,
-          pendingGrades: examSummary?.pending_grades || 0
-        });
+        setStats(calculateStats());
       } catch (error) {
         console.error('Dashboard loading error:', error);
       } finally {
@@ -153,81 +257,179 @@ const Dashboard = () => {
     };
 
     loadDashboardData();
-  }, [dispatch, isAuthenticated, navigate, classes, attendanceStats, examSummary]);
+  }, [dispatch, isAuthenticated, navigate, lastRefresh, calculateStats]);
+
+  const handleRefresh = () => {
+    setLastRefresh(dayjs());
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
 
   // Loading state
-  if (loading || announcementsLoading || classesLoading || attendanceLoading || examLoading) {
+  if (loading || classesLoading || attendanceLoading || examLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress size={60} />
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="80vh"
+        flexDirection="column"
+        gap={2}
+      >
+        <CircularProgress size={60} thickness={4} />
+        <Typography variant="body1" color="text.secondary">
+          Loading your dashboard...
+        </Typography>
       </Box>
     );
   }
 
   // Error states
-  const errors = [announcementsError, classesError, attendanceError, examError].filter(Boolean);
+  const errors = [classesError, attendanceError, examError].filter(Boolean);
   if (errors.length > 0) {
     return (
       <Box sx={{ p: 3 }}>
         {errors.map((error, index) => (
-          <Alert key={index} severity="error" sx={{ mb: 2 }}>
+          <Alert 
+            key={index} 
+            severity="error" 
+            sx={{ mb: 2 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small"
+                onClick={handleRefresh}
+              >
+                Retry
+              </Button>
+            }
+          >
             {error?.message || 'Error loading dashboard data'}
           </Alert>
         ))}
-        <Button 
-          variant="contained" 
-          onClick={() => window.location.reload()}
-          sx={{ mt: 2 }}
-        >
-          Retry
-        </Button>
       </Box>
     );
   }
 
-  const firstName = user?.first_name || '';
-  const lastName = user?.last_name || '';
-  const email = user?.email || '';
-  const profilePhoto = teacherProfile?.photo || null;
+  // Data preparation
+  const firstName = user.first_name || '';
+  const schoolName = schoolState.name || 'School name not available';
+  const academicYear = schoolState.current_academic_year?.name || 'Not specified';
 
   // Navigation handler
   const navigateTo = (path) => navigate(path);
 
-  // Format date helper
+  // Format helpers
   const formatDate = (dateString) => {
     if (!dateString) return 'Date not available';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Invalid date';
-    }
+    return dayjs(dateString).isValid() 
+      ? dayjs(dateString).format('MMM D, YYYY h:mm A') 
+      : 'Invalid date';
   };
 
-  // Format percentage
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return '';
+    return dayjs(dateString).isValid() 
+      ? dayjs(dateString).fromNow() 
+      : '';
+  };
+
   const formatPercentage = (value) => {
     return Math.round((value || 0) * 100) + '%';
   };
 
-  // Profile data
-  const profileData = [
-    { label: 'Name', value: `${firstName} ${lastName}` },
-    { label: 'Email', value: email },
-    { label: 'Subjects', value: teacherProfile?.subjects?.join(', ') || 'Not specified' },
-    { label: 'Qualification', value: teacherProfile?.qualification || 'Not specified' }
+  // Get audience label
+  const getAudienceLabel = (audience) => {
+    switch(audience) {
+      case 'ALL': return 'Everyone';
+      case 'STU': return 'Students';
+      case 'TEA': return 'Teachers';
+      case 'CLS': return 'Specific Class';
+      case 'SUB': return 'Subject Students';
+      default: return audience;
+    }
+  };
+
+  // Upcoming classes with proper data handling
+  const upcomingClasses = classes.slice(0, 3).map(cls => ({
+    id: cls.id || Math.random().toString(36).substr(2, 9),
+    name: cls.name || 'Unnamed Class',
+    subject: cls.subjects?.[0]?.name || cls.subjects?.[0] || 'General',
+    students_count: cls.students_count || 0,
+    room: cls.room || 'N/A',
+    nextSession: cls.next_session || dayjs().add(Math.random() * 7, 'day').toISOString()
+  }));
+
+  // Stats cards data
+  const statCards = [
+    {
+      title: 'Classes',
+      value: stats.totalClasses,
+      icon: <Class color="primary" fontSize="large" />,
+      progress: null,
+      onClick: () => navigateTo('/teacher/classes')
+    },
+    {
+      title: 'Students',
+      value: stats.totalStudents,
+      icon: <People color="secondary" fontSize="large" />,
+      progress: null,
+      onClick: () => navigateTo('/teacher/students')
+    },
+    {
+      title: 'Attendance',
+      value: formatPercentage(stats.attendanceRate),
+      icon: <Assignment color="success" fontSize="large" />,
+      progress: stats.attendanceRate * 100,
+      onClick: () => navigateTo('/teacher/attendance')
+    },
+    {
+      title: 'Pending Grades',
+      value: stats.pendingGrades,
+      icon: <Grade color="warning" fontSize="large" />,
+      progress: null,
+      onClick: () => navigateTo('/teacher/exam-results')
+    }
   ];
 
-  // Upcoming classes (mock data - would come from API in real app)
-  const upcomingClasses = classes.slice(0, 3).map(cls => ({
-    ...cls,
-    nextSession: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-    subject: cls.subjects?.[0] || 'General'
-  }));
+  // Tab configuration based on user role
+  const getTabs = () => {
+    const tabs = [];
+    
+    if (isAdmin) {
+      tabs.push({ label: 'All', value: 'ALL', icon: <SchoolIcon /> });
+    }
+    
+    if (isAdmin || isTeacher) {
+      tabs.push({ label: 'Teachers', value: 'TEA', icon: <Person /> });
+    }
+    
+    if (isAdmin || isStudent) {
+      tabs.push({ label: 'Students', value: 'STU', icon: <SupervisedUserCircle /> });
+    }
+    
+    return tabs;
+  };
+
+  const tabs = getTabs();
+
+  // Filter announcements based on active tab
+  const getFilteredAnnouncements = () => {
+    if (tabs.length === 0) return filteredAnnouncements;
+    
+    const currentTab = tabs[activeTab];
+    if (!currentTab) return filteredAnnouncements;
+    
+    if (currentTab.value === 'ALL') {
+      return filteredAnnouncements;
+    }
+    
+    return filteredAnnouncements.filter(ann => ann.audience === currentTab.value);
+  };
+
+  const currentAnnouncements = getFilteredAnnouncements();
 
   return (
     <Box 
@@ -238,15 +440,13 @@ const Dashboard = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(145deg, #121212 0%, #1a1a1a 100%)'
-          : 'linear-gradient(145deg, #f0f2f5 0%, #ffffff 100%)',
+        background: theme.palette.background.default,
       }}
     >
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <Box sx={{ 
@@ -262,7 +462,9 @@ const Dashboard = () => {
               variant={isMobile ? 'h5' : 'h4'} 
               component="h1"
               sx={{
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(45deg, #90caf9 30%, #4fc3f7 90%)'
+                  : 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
                 backgroundClip: 'text',
                 textFillColor: 'transparent',
                 fontWeight: 'bold',
@@ -272,29 +474,25 @@ const Dashboard = () => {
               Welcome, {firstName}!
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              Here's what's happening today
+              {dayjs().format('dddd, MMMM D, YYYY')}
             </Typography>
           </Box>
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Avatar 
-              src={profilePhoto ? `${API_ENDPOINTS.baseUrl}${profilePhoto}` : undefined}
-              sx={{ 
-                bgcolor: 'primary.main', 
-                width: isMobile ? 48 : 56, 
-                height: isMobile ? 48 : 56,
-                cursor: 'pointer',
-                border: '2px solid',
-                borderColor: 'primary.light',
-                fontSize: isMobile ? '1.5rem' : '2rem'
-              }}
-              onClick={() => navigateTo('/teacher/profile')}
-            >
-              {firstName.charAt(0)}
-            </Avatar>
-          </motion.div>
+          
+          <Box display="flex" alignItems="center" gap={2}>
+            <Tooltip title="Refresh data">
+              <IconButton onClick={handleRefresh} color="primary">
+                <Refresh />
+              </IconButton>
+            </Tooltip>
+            
+            <Tooltip title="Notifications">
+              <IconButton color="inherit">
+                <Badge badgeContent={stats.unreadAnnouncements} color="error">
+                  <Notifications />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
       </motion.div>
 
@@ -305,64 +503,34 @@ const Dashboard = () => {
         transition={{ delay: 0.2 }}
       >
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard onClick={() => navigateTo('/teacher/classes')}>
-              <Class color="primary" fontSize="large" />
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Classes
-                </Typography>
-                <Typography variant="h6" fontWeight="bold">
-                  {stats.totalClasses}
-                </Typography>
-              </Box>
-            </StatCard>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard onClick={() => navigateTo('/teacher/students')}>
-              <People color="secondary" fontSize="large" />
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Students
-                </Typography>
-                <Typography variant="h6" fontWeight="bold">
-                  {stats.totalStudents}
-                </Typography>
-              </Box>
-            </StatCard>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard onClick={() => navigateTo('/teacher/attendance')}>
-              <Assignment color="success" fontSize="large" />
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Attendance Rate
-                </Typography>
-                <Typography variant="h6" fontWeight="bold">
-                  {formatPercentage(stats.attendanceRate)}
-                </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={stats.attendanceRate * 100} 
-                  sx={{ mt: 1, height: 6, borderRadius: 3 }}
-                  color="success"
-                />
-              </Box>
-            </StatCard>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard onClick={() => navigateTo('/teacher/exam-results')}>
-              <Grade color="warning" fontSize="large" />
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Pending Grades
-                </Typography>
-                <Typography variant="h6" fontWeight="bold">
-                  {stats.pendingGrades}
-                </Typography>
-              </Box>
-            </StatCard>
-          </Grid>
+          {statCards.map((card, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <motion.div
+                whileHover={{ y: -5 }}
+                transition={{ duration: 0.2 }}
+              >
+                <StatCard onClick={card.onClick}>
+                  {card.icon}
+                  <Box flexGrow={1}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      {card.title}
+                    </Typography>
+                    <Typography variant="h6" fontWeight="bold">
+                      {card.value}
+                    </Typography>
+                    {card.progress !== null && (
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={card.progress} 
+                        sx={{ mt: 1, height: 6, borderRadius: 3 }}
+                        color="success"
+                      />
+                    )}
+                  </Box>
+                </StatCard>
+              </motion.div>
+            </Grid>
+          ))}
         </Grid>
       </motion.div>
 
@@ -378,63 +546,153 @@ const Dashboard = () => {
           >
             <GradientCard onClick={() => navigateTo('/teacher/announcements')}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Announcement 
-                    sx={{ 
-                      mr: 1,
-                      color: theme.palette.warning.main
-                    }} 
-                  />
-                  <Typography variant="h6">
-                    Recent Announcements
-                  </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  mb: 2 
+                }}>
+                  <Box display="flex" alignItems="center">
+                    <Announcement 
+                      sx={{ 
+                        mr: 1,
+                        color: theme.palette.warning.main
+                      }} 
+                    />
+                    <Typography variant="h6">
+                      Recent Announcements
+                    </Typography>
+                    {stats.unreadAnnouncements > 0 && (
+                      <Chip 
+                        label={`${stats.unreadAnnouncements} new`}
+                        size="small"
+                        color="warning"
+                        sx={{ ml: 1 }}
+                      />
+                    )}
+                  </Box>
+                  <IconButton size="small">
+                    <MoreVert />
+                  </IconButton>
                 </Box>
-                <List>
-                  {announcements.slice(0, 3).map((announcement) => (
-                    <React.Fragment key={announcement.id}>
-                      <ListItem
-                        sx={{
-                          '&:hover': {
-                            backgroundColor: theme.palette.action.hover,
-                            borderRadius: '8px'
-                          }
+                
+                {/* Announcement Tabs */}
+                {tabs.length > 1 && (
+                  <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                    <Tabs
+                      value={activeTab}
+                      onChange={handleTabChange}
+                      variant={isMobile ? 'scrollable' : 'standard'}
+                      scrollButtons="auto"
+                      allowScrollButtonsMobile
+                    >
+                      {tabs.map((tab, index) => (
+                        <Tab 
+                          key={index}
+                          label={tab.label}
+                          icon={tab.icon}
+                          iconPosition="start"
+                          sx={{ minHeight: 48 }}
+                        />
+                      ))}
+                    </Tabs>
+                  </Box>
+                )}
+                
+                <List sx={{ pt: 0 }}>
+                  <AnimatePresence>
+                    {currentAnnouncements.slice(0, 3).map((announcement) => (
+                      <motion.div
+                        key={announcement.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <ListItem
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: theme.palette.action.hover,
+                              borderRadius: '8px'
+                            }
+                          }}
+                        >
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {!announcement.read && <PulseDot />}
+                                <Typography fontWeight="medium">
+                                  {announcement.title}
+                                </Typography>
+                                <Chip 
+                                  label={getAudienceLabel(announcement.audience)}
+                                  size="small"
+                                  color="info"
+                                  sx={{ ml: 1 }}
+                                />
+                                {announcement.is_pinned && (
+                                  <Chip 
+                                    label="Pinned" 
+                                    size="small" 
+                                    color="warning"
+                                    icon={<Today fontSize="small" />}
+                                  />
+                                )}
+                              </Box>
+                            }
+                            secondary={
+                              <Box>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    mt: 0.5,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden'
+                                  }}
+                                >
+                                  {announcement.message}
+                                </Typography>
+                                <Box display="flex" justifyContent="space-between" sx={{ mt: 1 }}>
+                                  <Typography variant="caption">
+                                    {formatRelativeTime(announcement.created_at)}
+                                  </Typography>
+                                  <Typography variant="caption">
+                                    {formatDate(announcement.start_date)} - {announcement.end_date ? formatDate(announcement.end_date) : 'No end'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                        <Divider />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  
+                  {currentAnnouncements.length === 0 && (
+                    <ListItem>
+                      <ListItemText 
+                        primary="No announcements yet" 
+                        primaryTypographyProps={{ color: 'text.secondary', fontStyle: 'italic' }}
+                      />
+                    </ListItem>
+                  )}
+                  
+                  {currentAnnouncements.length > 0 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                      <Button 
+                        endIcon={<ArrowForward />}
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigateTo('/teacher/announcements');
                         }}
                       >
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography fontWeight="medium">
-                                {announcement.title}
-                              </Typography>
-                              {announcement.is_pinned && (
-                                <Chip 
-                                  label="Pinned" 
-                                  size="small" 
-                                  color="warning"
-                                  icon={<Today fontSize="small" />}
-                                />
-                              )}
-                            </Box>
-                          }
-                          secondary={
-                            <Box>
-                              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                {announcement.message}
-                              </Typography>
-                              <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                                {formatDate(announcement.start_date)} to {announcement.end_date ? formatDate(announcement.end_date) : 'No end date'}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      <Divider />
-                    </React.Fragment>
-                  ))}
-                  {announcements.length === 0 && (
-                    <ListItem>
-                      <ListItemText primary="No announcements yet" />
-                    </ListItem>
+                        View all
+                      </Button>
+                    </Box>
                   )}
                 </List>
               </CardContent>
@@ -450,55 +708,98 @@ const Dashboard = () => {
           >
             <GradientCard onClick={() => navigateTo('/teacher/classes')}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <EventNote 
-                    sx={{ 
-                      mr: 1,
-                      color: theme.palette.info.main
-                    }} 
-                  />
-                  <Typography variant="h6">
-                    Upcoming Classes
-                  </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  mb: 2 
+                }}>
+                  <Box display="flex" alignItems="center">
+                    <EventNote 
+                      sx={{ 
+                        mr: 1,
+                        color: theme.palette.info.main
+                      }} 
+                    />
+                    <Typography variant="h6">
+                      Upcoming Classes
+                    </Typography>
+                  </Box>
+                  <IconButton size="small">
+                    <MoreVert />
+                  </IconButton>
                 </Box>
-                <List>
-                  {upcomingClasses.map((cls) => (
-                    <React.Fragment key={cls.id}>
-                      <ListItem
-                        sx={{
-                          '&:hover': {
-                            backgroundColor: theme.palette.action.hover,
-                            borderRadius: '8px'
-                          }
-                        }}
+                
+                <List sx={{ pt: 0 }}>
+                  <AnimatePresence>
+                    {upcomingClasses.map((cls) => (
+                      <motion.div
+                        key={cls.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
                       >
-                        <ListItemText
-                          primary={
-                            <Box>
-                              <Typography fontWeight="medium">
-                                {cls.name} - {cls.subject}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {cls.students_count} students
-                              </Typography>
-                            </Box>
-                          }
-                          secondary={
-                            <Box>
-                              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                Next session: {formatDate(cls.nextSession)}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      <Divider />
-                    </React.Fragment>
-                  ))}
+                        <ListItem
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: theme.palette.action.hover,
+                              borderRadius: '8px'
+                            }
+                          }}
+                        >
+                          <ListItemText
+                            primary={
+                              <Box>
+                                <Typography fontWeight="medium">
+                                  {cls.name} - {cls.subject}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {cls.students_count} students • Room {cls.room}
+                                </Typography>
+                              </Box>
+                            }
+                            secondary={
+                              <Box>
+                                <Box display="flex" alignItems="center" sx={{ mt: 0.5 }}>
+                                  <Today fontSize="small" color="action" sx={{ mr: 1 }} />
+                                  <Typography variant="body2">
+                                    {formatDate(cls.nextSession)}
+                                  </Typography>
+                                </Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                                  {formatRelativeTime(cls.nextSession)}
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                        <Divider />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  
                   {classes.length === 0 && (
                     <ListItem>
-                      <ListItemText primary="No classes assigned" />
+                      <ListItemText 
+                        primary="No classes assigned" 
+                        primaryTypographyProps={{ color: 'text.secondary', fontStyle: 'italic' }}
+                      />
                     </ListItem>
+                  )}
+                  
+                  {classes.length > 0 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                      <Button 
+                        endIcon={<ArrowForward />}
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigateTo('/teacher/classes');
+                        }}
+                      >
+                        View schedule
+                      </Button>
+                    </Box>
                   )}
                 </List>
               </CardContent>
@@ -508,72 +809,94 @@ const Dashboard = () => {
 
         {/* Right Column */}
         <Grid item xs={12} md={4}>
-          {/* Profile Summary */}
+          {/* School Information */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <GradientCard onClick={() => navigateTo('/teacher/profile')}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Person 
-                    sx={{ 
-                      mr: 1,
-                      color: theme.palette.success.main
-                    }} 
-                  />
-                  <Typography variant="h6">
-                    Profile Summary
-                  </Typography>
-                </Box>
-                <List>
-                  {profileData.map((item, index) => (
-                    <React.Fragment key={index}>
-                      <ListItem>
-                        <ListItemText
-                          primary={item.label}
-                          secondary={
-                            <Typography color="text.primary" fontWeight="medium">
-                              {item.value}
-                            </Typography>
-                          }
-                        />
-                      </ListItem>
-                      {index < profileData.length - 1 && <Divider />}
-                    </React.Fragment>
-                  ))}
-                </List>
-              </CardContent>
-            </GradientCard>
-          </motion.div>
-
-          {/* School Information */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-            style={{ marginTop: theme.spacing(3) }}
-          >
             <GradientCard onClick={() => navigateTo('/teacher/school-info')}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <School 
-                    sx={{ 
-                      mr: 1,
-                      color: theme.palette.primary.main
-                    }} 
-                  />
-                  <Typography variant="h6">
-                    School Information
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  mb: 2 
+                }}>
+                  <Box display="flex" alignItems="center">
+                    <School 
+                      sx={{ 
+                        mr: 1,
+                        color: theme.palette.primary.main
+                      }} 
+                    />
+                    <Typography variant="h6">
+                      School Information
+                    </Typography>
+                  </Box>
+                  <IconButton size="small">
+                    <MoreVert />
+                  </IconButton>
+                </Box>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body1" fontWeight="medium">
+                    {schoolName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {schoolState.address || 'Address not available'}
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ mb: 2 }}>
-                  {teacherProfile?.school?.name || 'School name not available'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Current Academic Year: {teacherProfile?.school?.current_academic_year?.name || 'Not specified'}
-                </Typography>
+                
+                <Grid container spacing={1}>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Academic Year
+                    </Typography>
+                    <Typography variant="body2">
+                      {academicYear}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Established
+                    </Typography>
+                    <Typography variant="body2">
+                      {schoolState.established_date 
+                        ? dayjs(schoolState.established_date).format('YYYY') 
+                        : 'N/A'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Phone
+                    </Typography>
+                    <Typography variant="body2">
+                      {schoolState.phone || 'N/A'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Email
+                    </Typography>
+                    <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
+                      {schoolState.email || 'N/A'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                  <Button 
+                    endIcon={<ArrowForward />}
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigateTo('/teacher/school-info');
+                    }}
+                  >
+                    View details
+                  </Button>
+                </Box>
               </CardContent>
             </GradientCard>
           </motion.div>
@@ -582,39 +905,110 @@ const Dashboard = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 }}
+            transition={{ delay: 0.6 }}
             style={{ marginTop: theme.spacing(3) }}
           >
-            <GradientCard onClick={() => navigateTo('/teacher/exam-results')}>
+            <GradientCard onClick={() => navigateTo(API_ENDPOINTS.teachers.examResults.base)}>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <BarChart 
-                    sx={{ 
-                      mr: 1,
-                      color: theme.palette.secondary.main
-                    }} 
-                  />
-                  <Typography variant="h6">
-                    Performance Overview
-                  </Typography>
-                </Box>
-                {examSummary ? (
-                  <Box>
-                    <Typography variant="body2">
-                      Top Performing Class: {examSummary.top_class?.name || 'N/A'} ({examSummary.top_class?.average || 0}%)
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      Subjects Taught: {examSummary.subjects_taught || 0}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      Exams Graded: {examSummary.exams_graded || 0}/{examSummary.total_exams || 0}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  mb: 2 
+                }}>
+                  <Box display="flex" alignItems="center">
+                    <BarChart 
+                      sx={{ 
+                        mr: 1,
+                        color: theme.palette.secondary.main
+                      }} 
+                    />
+                    <Typography variant="h6">
+                      Performance Overview
                     </Typography>
                   </Box>
+                  <IconButton size="small">
+                    <MoreVert />
+                  </IconButton>
+                </Box>
+                
+                {examSummary ? (
+                  <Box>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Top Performing Class
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {examSummary.top_class?.name || 'N/A'} ({examSummary.top_class?.average || 0}%)
+                      </Typography>
+                    </Box>
+                    
+                    <Grid container spacing={1} sx={{ mb: 2 }}>
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Subjects Taught
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {examSummary.subjects_taught || 0}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Exams Graded
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {examSummary.exams_graded || 0}/{examSummary.total_exams || 0}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                    
+                    <Box sx={{ 
+                      background: theme.palette.action.hover,
+                      borderRadius: '8px',
+                      p: 2,
+                      mb: 2
+                    }}>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                        Class Averages
+                      </Typography>
+                      {examSummary.class_averages?.slice(0, 3).map((cls, index) => (
+                        <Box key={index} sx={{ mb: 1 }}>
+                          <Box display="flex" justifyContent="space-between">
+                            <Typography variant="body2">
+                              {cls.name}
+                            </Typography>
+                            <Typography variant="body2" fontWeight="medium">
+                              {cls.average}%
+                            </Typography>
+                          </Box>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={cls.average} 
+                            sx={{ height: 4, borderRadius: 2 }}
+                            color={cls.average > 70 ? 'success' : cls.average > 50 ? 'warning' : 'error'}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
                 ) : (
-                  <Typography variant="body2">
+                  <Typography variant="body2" color="text.secondary" fontStyle="italic">
                     No performance data available
                   </Typography>
                 )}
+                
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                  <Button 
+                    endIcon={<ArrowForward />}
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigateTo('/teacher/exam-results');
+                    }}
+                  >
+                    View details
+                  </Button>
+                </Box>
               </CardContent>
             </GradientCard>
           </motion.div>

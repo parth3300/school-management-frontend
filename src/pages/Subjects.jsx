@@ -1,157 +1,130 @@
-import React, { useEffect, useState } from 'react';
+// src/components/SubjectList.js
+import React, { useEffect } from 'react';
 import {
   Box,
-  Button,
+  Typography,
+  CircularProgress,
+  Grid,
   Card,
   CardContent,
-  Container,
-  Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-  IconButton,
-  Tooltip,
-  useTheme,
+  CardActions,
+  Button,
+  Chip
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchSubjects,
-  createSubject,
-  updateSubject,
   deleteSubject,
+  selectSubjectTeachers,
+  selectSubjectClasses,
+  fetchSubjectTeachers,
+  fetchSubjectClasses,
+  selectTeachersLoading,
+  selectClassesLoading
 } from '../redux/slices/subjectSlice';
-import SubjectForm from '../components/subjects/SubjectForm';
 
 const Subjects = () => {
   const dispatch = useDispatch();
-  const theme = useTheme();
-  const { subjects, loading, error } = useSelector((state) => state.subject);
-
-  const [openForm, setOpenForm] = useState(false);
-  const [currentSubject, setCurrentSubject] = useState(null);
+  const { data: subjects, loading, error } = useSelector((state) => state.subjects);
+  const teachers = useSelector(selectSubjectTeachers);
+  const classes = useSelector(selectSubjectClasses);
+  const teachersLoading = useSelector(selectTeachersLoading);
+  const classesLoading = useSelector(selectClassesLoading);
 
   useEffect(() => {
     dispatch(fetchSubjects());
   }, [dispatch]);
 
-  const handleSubmit = async (subjectData) => {
-    if (currentSubject) {
-      await dispatch(updateSubject({ id: currentSubject.id, data: subjectData }));
-    } else {
-      await dispatch(createSubject(subjectData));
-    }
-    setOpenForm(false);
-    setCurrentSubject(null);
+  const handleDelete = (id) => {
+    dispatch(deleteSubject(id));
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this subject?')) {
-      await dispatch(deleteSubject(id));
-    }
+  const handleLoadExtras = (subjectId) => {
+    dispatch(fetchSubjectTeachers(subjectId));
+    dispatch(fetchSubjectClasses(subjectId));
   };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" mt={4}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Typography color="error" align="center">
+        Failed to load subjects: {error}
+      </Typography>
+    );
+  }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 5 }}>
-        <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Grid item>
-            <Typography variant="h4" fontWeight="bold" color="primary">
-              Subjects
-            </Typography>
-          </Grid>
-          <Grid item>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setCurrentSubject(null);
-                setOpenForm(true);
-              }}
-              sx={{ borderRadius: 3 }}
-            >
-              Add Subject
-            </Button>
-          </Grid>
-        </Grid>
+    <Box p={3}>
+      <Typography variant="h4" mb={3}>
+        Subjects
+      </Typography>
+      <Grid container spacing={3}>
+        {subjects.map((subject) => (
+          <Grid item xs={12} sm={6} md={4} key={subject.id}>
+            <Card elevation={4}>
+              <CardContent>
+                <Typography variant="h6">{subject.name}</Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Code: {subject.code}
+                </Typography>
 
-        <Card elevation={3}>
-          <CardContent>
-            {loading ? (
-              <Typography>Loading...</Typography>
-            ) : error ? (
-              <Typography color="error">{error}</Typography>
-            ) : subjects.length === 0 ? (
-              <Typography>No subjects available.</Typography>
-            ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead sx={{ backgroundColor: theme.palette.primary.light }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Code</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        Actions
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {subjects.map((subject, index) => (
-                      <TableRow
-                        key={subject.id}
-                        sx={{
-                          backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff',
-                          '&:hover': { backgroundColor: '#f1f1f1' },
-                        }}
-                      >
-                        <TableCell>{subject.name}</TableCell>
-                        <TableCell>{subject.code}</TableCell>
-                        <TableCell>{subject.description}</TableCell>
-                        <TableCell align="right">
-                          <Tooltip title="Edit">
-                            <IconButton
-                              onClick={() => {
-                                setCurrentSubject(subject);
-                                setOpenForm(true);
-                              }}
-                              color="primary"
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              onClick={() => handleDelete(subject.id)}
-                              color="error"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
+                <Box mt={2}>
+                  <Typography variant="subtitle2">Teachers:</Typography>
+                  {teachersLoading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    teachers
+                      .filter((t) => t.subject === subject.id)
+                      .map((teacher) => (
+                        <Chip
+                          key={teacher.id}
+                          label={teacher.name}
+                          size="small"
+                          sx={{ mr: 0.5, mb: 0.5 }}
+                        />
+                      ))
+                  )}
+                </Box>
 
-      <SubjectForm
-        open={openForm}
-        onClose={() => setOpenForm(false)}
-        onSubmit={handleSubmit}
-        subject={currentSubject}
-      />
-    </Container>
+                <Box mt={2}>
+                  <Typography variant="subtitle2">Classes:</Typography>
+                  {classesLoading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    classes
+                      .filter((c) => c.subject === subject.id)
+                      .map((cls) => (
+                        <Chip
+                          key={cls.id}
+                          label={cls.name}
+                          size="small"
+                          color="info"
+                          sx={{ mr: 0.5, mb: 0.5 }}
+                        />
+                      ))
+                  )}
+                </Box>
+              </CardContent>
+              <CardActions>
+                <Button size="small" onClick={() => handleLoadExtras(subject.id)}>
+                  Load Info
+                </Button>
+                <Button size="small" color="error" onClick={() => handleDelete(subject.id)}>
+                  Delete
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
   );
 };
 

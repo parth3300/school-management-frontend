@@ -69,7 +69,7 @@ const AcademicYears = () => {
   const fetchAcademicYears = async () => {
     try {
       setLoading(true);
-      const response = await api.get(API_ENDPOINTS.academicYears);
+      const response = await api.get(API_ENDPOINTS.academicYears.getAll);
       setAcademicYears(response.data);
     } catch (error) {
       setError('Failed to fetch academic years');
@@ -80,7 +80,7 @@ const AcademicYears = () => {
 
   const fetchSchools = async () => {
     try {
-      const response = await api.get(API_ENDPOINTS.schools);
+      const response = await api.get(API_ENDPOINTS.school.get);
       setSchools(response.data);
     } catch (error) {
       console.error('Error fetching schools:', error);

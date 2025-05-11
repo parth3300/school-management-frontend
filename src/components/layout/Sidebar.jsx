@@ -3,7 +3,6 @@ import React from 'react';
 import { Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
-  School as SchoolIcon,
   CalendarToday as CalendarIcon,
   Class as ClassIcon,
   Book as BookIcon,
@@ -19,7 +18,6 @@ const drawerWidth = 240;
 const Sidebar = () => {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Schools', icon: <SchoolIcon />, path: '/schools' },
     { text: 'Academic Years', icon: <CalendarIcon />, path: '/academic-years' },
     { text: 'Classes', icon: <ClassIcon />, path: '/classes' },
     { text: 'Subjects', icon: <BookIcon />, path: '/subjects' },
@@ -47,7 +45,7 @@ const Sidebar = () => {
       <List>
         {menuItems.map((item) => (
           <ListItem 
-            button 
+            button={true} 
             key={item.text} 
             component={Link} 
             to={item.path}

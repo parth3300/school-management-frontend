@@ -23,23 +23,23 @@ api.interceptors.request.use(
 );
 
 // Response interceptor
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Check current pathname
-      const currentPath = window.location.pathname;
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     if (error.response && error.response.status === 401) {
+//       // Check current pathname
+//       const currentPath = window.location.pathname;
 
-      // Prevent redirect if already on login or register page
-      const isAuthPage = ['/login', '/register'].includes(currentPath);
+//       // Prevent redirect if already on login or register page
+//       const isAuthPage = ['/login', '/register', '/school'].includes(currentPath);
 
-      if (!isAuthPage) {
-        localStorage.removeItem('access_token');
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+//       if (!isAuthPage) {
+//         localStorage.removeItem('access_token');
+//         window.location.href = '/login';
+//       }
+//     }
+//     return Promise.reject(error);
+//   }
+// );
 
 export default api;

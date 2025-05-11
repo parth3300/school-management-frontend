@@ -14,9 +14,13 @@ import Teachers from './pages/Teachers';
 import Students from './pages/Students';
 import Attendance from './pages/Attendance';
 import Exams from './pages/Exams';
-import Login from './pages/Login';
 import './styles/global.css';
 import Register from './pages/Register';
+import NotFound from './pages/NotFound';
+import TeacherLogin from './pages/TeacherLogin';
+import AdminLogin from './pages/AdminLogin';
+import StudentLogin from './pages/StudentLogin';
+import VisitorLogin from './pages/VisitorLogin';
 
 
 function App() {
@@ -25,13 +29,16 @@ function App() {
       <ThemeProvider theme={theme}>
         <Router>
           <Routes>
-            <Route path="/login" element={<Login />} />
+          <Route path="/visitor-login" element={<VisitorLogin />} />
+          <Route path="/student-login" element={<StudentLogin />} />
+          <Route path="/teacher-login" element={<TeacherLogin />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="*" element={<NotFound />} />
+
             <Route path="/register" element={<Register/>} />
+            <Route path="/" element={<Schools />} />  
 
               <Route element={<Layout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/schools" element={<Schools />} />
-                <Route path="/academic-years" element={<AcademicYears />} />
                 <Route path="/classes" element={<Classes />} />
                 <Route path="/subjects" element={<Subjects />} />
                 <Route path="/teachers" element={<Teachers />} />

@@ -10,7 +10,7 @@ const examResultsEndpoints = {
   update: (id) => API_ENDPOINTS.examResults.update(id),
   delete: (id) => API_ENDPOINTS.examResults.delete(id),
   getSummary: API_ENDPOINTS.examResults.summary, // Added summary endpoint
-  getByClass: API_ENDPOINTS.teacher.examResults.byClass // Added byClass endpoint
+  getByClass: API_ENDPOINTS.teachers.examResults.byClass // Added byClass endpoint
 };
 
 const { reducer, actions } = createApiSlice({
@@ -95,7 +95,8 @@ const { reducer, actions } = createApiSlice({
 });
 
 // Selectors
-export const selectExamResultsSummary = (state) => state.examResults.summary;
+export const selectExamResultsSummary = (state) =>
+  state.examResults?.summary ?? null;
 export const selectSummaryLoading = (state) => state.examResults.loadingSummary;
 export const selectSummaryError = (state) => state.examResults.summaryError;
 export const selectClassResults = (classId) => (state) => 

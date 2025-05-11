@@ -1,281 +1,177 @@
-import React, { useEffect, useState } from 'react';
+// src/pages/Schools.jsx
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { fetchSchools } from '../redux/slices/schoolSlice';
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Container,
   Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Card,
+  CardMedia,
+  CardContent,
   Typography,
-  IconButton,
-  Tooltip,
-  useTheme,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
+  Container,
+  Box,
+  Paper,
+  InputAdornment,
+  CircularProgress,
+  Alert,
+  TextField
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import {
-  fetchSchools,
-  createSchool,
-  updateSchool
-} from '../redux/slices/schoolSlice';
-
-// SchoolForm component (moved inside the s ame file for testing)
-const SchoolForm = ({ open, onClose, onSubmit, school }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phone: '',
-    email: '',
-    website: '',
-    establishedYear: ''
-  });
-
-  useEffect(() => {
-    if (school) {
-      setFormData({
-        name: school.name || '',
-        address: school.address || '',
-        phone: school.phone || '',
-        email: school.email || '',
-        website: school.website || '',
-        establishedYear: school.establishedYear || ''
-      });
-    } else {
-      setFormData({
-        name: '',
-        address: '',
-        phone: '',
-        email: '',
-        website: '',
-        establishedYear: ''
-      });
-    }
-  }, [school]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmitForm = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {school ? 'Edit School' : 'Add New School'}
-      </DialogTitle>
-      <DialogContent>
-        <form onSubmit={handleSubmitForm}>
-          <Box sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="School Name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  required
-                  multiline
-                  rows={3}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Website"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Established Year"
-                  name="establishedYear"
-                  type="number"
-                  value={formData.establishedYear}
-                  onChange={handleChange}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        </form>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button 
-          onClick={handleSubmitForm} 
-          variant="contained"
-          color="primary"
-        >
-          {school ? 'Update' : 'Create'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
+import SearchIcon from '@mui/icons-material/Search';
+import SchoolIcon from '@mui/icons-material/School';
+import RoleSelectionModal from './RoleSelectionModal';
+import SchoolLoginModal from './SchoolLoginModal';
 
 const Schools = () => {
   const dispatch = useDispatch();
-  const { schools, loading, error } = useSelector((state) => state.school);
-  const [openForm, setOpenForm] = useState(false);
-  const [currentSchool, setCurrentSchool] = useState(null);
-  const theme = useTheme();
+  const {  loading, error } = useSelector((state) => state.school);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const schools = useSelector((state) => state.school.data) || [];
 
   useEffect(() => {
     dispatch(fetchSchools());
   }, [dispatch]);
 
-  const handleSubmit = async (schoolData) => {
-    try {
-      if (currentSchool) {
-        await dispatch(updateSchool({ id: currentSchool.id, data: schoolData }));
-      } else {
-        await dispatch(createSchool(schoolData));
-      }
-      setOpenForm(false);
-      setCurrentSchool(null);
-      dispatch(fetchSchools()); // Refresh the list after update
-    } catch (err) {
-      console.error('Error saving school:', err);
-    }
+  const filteredSchools = schools.filter((school) =>
+    school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    school.address.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSchoolClick = (school) => {
+    setSelectedSchool(school);
+    setLoginModalOpen(true);
   };
 
-  return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 5 }}>
-        <Grid container justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-          <Grid item>
-            <Typography variant="h4" fontWeight="bold" color="primary">
-              Schools
-            </Typography>
-          </Grid>
-          <Grid item>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setCurrentSchool(null);
-                setOpenForm(true);
-              }}
-              sx={{ borderRadius: 3 }}
-            >
-              Add School
-            </Button>
-          </Grid>
-        </Grid>
+  const handleLoginSuccess = () => {
+    setLoginModalOpen(false);
+    setRoleModalOpen(true);
+  };
 
-        <Card elevation={3}>
-          <CardContent>
-            {loading ? (
-              <Typography>Loading...</Typography>
-            ) : error ? (
-              <Typography color="error">{error}</Typography>
-            ) : schools.length === 0 ? (
-              <Typography>No schools found.</Typography>
-            ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead sx={{ backgroundColor: theme.palette.primary.light }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Address</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Phone</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        Actions
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {schools.map((school, index) => (
-                      <TableRow
-                        key={school.id}
-                        sx={{
-                          backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff',
-                          transition: 'background-color 0.3s',
-                          '&:hover': { backgroundColor: '#f1f1f1' },
-                        }}
-                      >
-                        <TableCell>{school.name}</TableCell>
-                        <TableCell>{school.address}</TableCell>
-                        <TableCell>{school.phone}</TableCell>
-                        <TableCell>{school.email}</TableCell>
-                        <TableCell align="right">
-                          <Tooltip title="Edit">
-                            <IconButton
-                              onClick={() => {
-                                setCurrentSchool(school);
-                                setOpenForm(true);
-                              }}
-                              color="primary"
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </CardContent>
-        </Card>
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" mt={4}>
+        <CircularProgress size={60} />
       </Box>
+    );
+  }
 
-      <SchoolForm
-        open={openForm}
-        onClose={() => setOpenForm(false)}
-        onSubmit={handleSubmit}
-        school={currentSchool}
-      />
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" mt={4}>
+        <Alert severity="error">Error loading schools: {error}</Alert>
+      </Box>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* School Login Modal */}
+      {selectedSchool && (
+        <SchoolLoginModal
+          open={loginModalOpen}
+          onClose={() => setLoginModalOpen(false)}
+          school={selectedSchool}
+          onSuccess={handleLoginSuccess}
+        />
+      )}
+
+      {/* Role Selection Modal */}
+      {selectedSchool && (
+        <RoleSelectionModal
+          open={roleModalOpen}
+          onClose={() => setRoleModalOpen(false)}
+          schoolId={selectedSchool.id}
+        />
+      )}
+
+      <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+            <SchoolIcon fontSize="large" sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Select Your School
+          </Typography>
+          
+          <TextField
+            variant="outlined"
+            placeholder="Search schools..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: 300 }}
+          />
+        </Box>
+
+        {filteredSchools.length === 0 ? (
+          <Box textAlign="center" py={6}>
+            <Typography variant="h6" color="textSecondary">
+              No schools found matching your search
+            </Typography>
+          </Box>
+        ) : (
+          <Grid container spacing={4}>
+            {filteredSchools.map((school) => (
+              <Grid item xs={12} sm={6} md={4} key={school.id}>
+                <Card 
+                  sx={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: 8,
+                      cursor: 'pointer'
+                    }
+                  }}
+                  onClick={() => handleSchoolClick(school)}
+                >
+                  {school.logo ? (
+                    <CardMedia
+                      component="img"
+                      height="160"
+                      image={school.logo}
+                      alt={school.name}
+                      sx={{ objectFit: 'contain', p: 2 }}
+                    />
+                  ) : (
+                    <Box
+                      height={160}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      bgcolor="grey.100"
+                    >
+                      <SchoolIcon fontSize="large" color="action" />
+                    </Box>
+                  )}
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Typography gutterBottom variant="h5" component="div">
+                      {school.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" paragraph>
+                      {school.address}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {school.website}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                      Established: {new Date(school.established_date).toLocaleDateString()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Paper>
     </Container>
   );
 };

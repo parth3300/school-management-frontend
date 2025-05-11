@@ -6,6 +6,7 @@ import { createApiSlice } from '../../utils/sliceHelpers';
 
 const classEndpoints = {
   getAll: API_ENDPOINTS.classes.getAll,
+  get: API_ENDPOINTS.classes.get,
   create: API_ENDPOINTS.classes.create,
   update: (id) => API_ENDPOINTS.classes.update(id),
   delete: (id) => API_ENDPOINTS.classes.delete(id),
@@ -17,32 +18,29 @@ const { reducer, actions } = createApiSlice({
   api,
   endpoints: classEndpoints,
   initialState: {
-    // Class-specific initial state
-    activeClasses: [],
-    archivedClasses: [],
-    currentClassStudents: [] // For storing students of a specific class
+    data: [], // Default data from createApiSlice
+    currentClassStudents: [],
+    loading: false,
+    error: null
   },
-  extraReducers: (builder, { fetchThunk }) => {
-    // Custom reducers for classes
-    builder.addCase(fetchThunk.fulfilled, (state, action) => {
-      // Separate active and archived classes
-      state.activeClasses = action.payload.filter(cls => !cls.isArchived);
-      state.archivedClasses = action.payload.filter(cls => cls.isArchived);
-      state.data = action.payload; // Still keep all classes in data
-    });
-
-    // Additional thunk for getting students in a class
+  extraReducers: (builder) => {
+    // Custom thunk for getting students in a class
     const fetchClassStudents = createAsyncThunk(
       'classes/fetchStudents',
-      async (classId) => {
-        const response = await api.get(classEndpoints.getStudents(classId));
-        return { classId, students: response.data };
+      async (classId, { rejectWithValue }) => {
+        try {
+          const response = await api.get(classEndpoints.getStudents(classId));
+          return { classId, students: response.data };
+        } catch (error) {
+          return rejectWithValue(error.response?.data || error.message);
+        }
       }
     );
 
     builder
       .addCase(fetchClassStudents.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchClassStudents.fulfilled, (state, action) => {
         state.loading = false;
@@ -50,20 +48,34 @@ const { reducer, actions } = createApiSlice({
       })
       .addCase(fetchClassStudents.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
 
-    return { ...actions, fetchStudents: fetchClassStudents };
+    return {
+      ...actions,
+      fetchStudents: fetchClassStudents
+    };
   }
 });
 
-export const { 
-  fetch: fetchClasses, 
-  create: createClass, 
-  update: updateClass, 
+// Selectors
+export const selectAllClasses = (state) => state.classes.data || [];
+export const selectActiveClasses = (state) =>
+  (state.classes.data || []).filter(cls => !cls.isArchived);
+export const selectArchivedClasses = (state) =>
+  (state.classes.data || []).filter(cls => cls.isArchived);
+export const selectCurrentClassStudents = (state) => state.classes.currentClassStudents;
+export const selectClassesLoading = (state) => state.classes.loading;
+export const selectClassesError = (state) => state.classes.error;
+
+// Actions
+export const {
+  fetch: fetchClasses,
+  create: createClass,
+  update: updateClass,
   delete: deleteClass,
   fetchStudents: fetchClassStudents,
-  reset 
+  reset
 } = actions;
 
 export default reducer;

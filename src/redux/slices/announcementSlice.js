@@ -1,37 +1,74 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+// src/redux/slices/announcementSlice.js
+import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
+import { createApiSlice } from '../../utils/sliceHelpers';
 
-export const fetchAnnouncements = createAsyncThunk(
-  'announcements/fetchAnnouncements',
-  async () => {
-    const response = await api.get(API_ENDPOINTS.announcements);
-    return response.data;
-  }
-);
+const announcementEndpoints = {
+  getAll: API_ENDPOINTS.announcements.getAll,
+  create: API_ENDPOINTS.announcements.create,
+  create: API_ENDPOINTS.announcements.create,
+  update: (id) => API_ENDPOINTS.announcements.update(id),
+  delete: (id) => API_ENDPOINTS.announcements.delete(id),
+};
 
-const announcementSlice = createSlice({
-  name: 'announcement',
+const { reducer, actions } = createApiSlice({
+  name: 'announcements',
+  api,
+  endpoints: announcementEndpoints,
   initialState: {
-    announcements: [],
+    latestAnnouncements: [],
     loading: false,
     error: null,
   },
-  reducers: {},
   extraReducers: (builder) => {
+    const fetchLatestAnnouncements = createAsyncThunk(
+      'announcements/fetchLatest',
+      async (_, { rejectWithValue }) => {
+        try {
+          const response = await api.get(API_ENDPOINTS.announcements.getAll);
+          return response.data;
+        } catch (err) {
+          return rejectWithValue(err.response?.data || err.message);
+        }
+      }
+    );
+
     builder
-      .addCase(fetchAnnouncements.pending, (state) => {
+      .addCase(fetchLatestAnnouncements.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
-      .addCase(fetchAnnouncements.fulfilled, (state, action) => {
+      .addCase(fetchLatestAnnouncements.fulfilled, (state, action) => {
         state.loading = false;
-        state.announcements = action.payload;
+        state.latestAnnouncements = action.payload;
       })
-      .addCase(fetchAnnouncements.rejected, (state, action) => {
+      .addCase(fetchLatestAnnouncements.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       });
-  },
+
+    return {
+      ...actions,
+      fetchLatestAnnouncements
+    };
+  }
 });
 
-export default announcementSlice.reducer;
+// Selectors
+export const selectLatestAnnouncements = (state) => state.announcements.latestAnnouncements;
+export const selectAnnouncementsLoading = (state) => state.announcements.loading;
+export const selectAnnouncementsError = (state) => state.announcements.error;
+
+console.log("actionsactionsactions",actions);
+
+// Actions
+export const {
+  fetch: fetchAnnouncements,
+  create: createAnnouncement,
+  update: updateAnnouncement,
+  delete: deleteAnnouncement,
+  fetchLatestAnnouncements
+} = actions;
+
+export default reducer;
