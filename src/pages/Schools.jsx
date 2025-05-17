@@ -1,7 +1,6 @@
-// src/pages/Schools.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, createRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchSchools } from '../redux/slices/schoolSlice';
+import { fetchSchools, uploadLogo } from '../redux/slices/schoolSlice';
 import {
   Grid,
   Card,
@@ -14,21 +13,36 @@ import {
   InputAdornment,
   CircularProgress,
   Alert,
-  TextField
+  TextField,
+  Button,
+  IconButton,
+  Snackbar
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SchoolIcon from '@mui/icons-material/School';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import CloseIcon from '@mui/icons-material/Close';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 import RoleSelectionModal from './RoleSelectionModal';
 import SchoolLoginModal from './SchoolLoginModal';
 
 const Schools = () => {
   const dispatch = useDispatch();
-  const {  loading, error } = useSelector((state) => state.school);
+  const { loading, error } = useSelector((state) => state.school);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [uploadingLogoForSchool, setUploadingLogoForSchool] = useState(null);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success' // 'success' | 'error' | 'info' | 'warning'
+  });
+  const fileInputRefs = useRef({});
   const schools = useSelector((state) => state.school.data) || [];
+
 
   useEffect(() => {
     dispatch(fetchSchools());
@@ -49,7 +63,69 @@ const Schools = () => {
     setRoleModalOpen(true);
   };
 
-  if (loading) {
+  const handleLogoUpload = async (event, schoolId) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.match('image.*')) {
+      setNotification({
+        open: true,
+        message: 'Invalid file type',
+        severity: 'error',
+        details: 'Please upload an image file (JPEG, PNG)'
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      setNotification({
+        open: true,
+        message: 'File too large',
+        severity: 'error',
+        details: 'Image must be less than 5MB'
+      });
+      return;
+    }
+
+    setUploadingLogoForSchool(schoolId);
+
+    try {
+      await dispatch(uploadLogo({ schoolId, file })).unwrap();
+      
+      setNotification({
+        open: true,
+        message: 'Logo uploaded successfully!',
+        severity: 'success'
+      });
+      
+      // Refresh schools data after successful upload
+      dispatch(fetchSchools());
+    } catch (error) {
+      console.error('Logo upload failed:', error);
+      setNotification({
+        open: true,
+        message: 'Failed to upload logo',
+        severity: 'error',
+        details: error.message || 'Please try again'
+      });
+    } finally {
+      setUploadingLogoForSchool(null);
+    }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  const getFileInputRef = (schoolId) => {
+    if (!fileInputRefs.current[schoolId]) {
+      fileInputRefs.current[schoolId] = createRef();
+    }
+    return fileInputRefs.current[schoolId];
+  };
+
+  if (loading && schools.length === 0) {
     return (
       <Box display="flex" justifyContent="center" mt={4}>
         <CircularProgress size={60} />
@@ -67,6 +143,33 @@ const Schools = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          severity={notification.severity}
+          onClose={handleCloseNotification}
+          sx={{ width: '100%' }}
+          iconMapping={{
+            success: <CheckCircleIcon fontSize="inherit" />,
+            error: <ErrorIcon fontSize="inherit" />
+          }}
+        >
+          <Box>
+            <Typography>{notification.message}</Typography>
+            {notification.details && (
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                {notification.details}
+              </Typography>
+            )}
+          </Box>
+        </Alert>
+      </Snackbar>
+
       {/* School Login Modal */}
       {selectedSchool && (
         <SchoolLoginModal
@@ -128,30 +231,99 @@ const Schools = () => {
                     '&:hover': {
                       transform: 'translateY(-5px)',
                       boxShadow: 8,
-                      cursor: 'pointer'
                     }
                   }}
-                  onClick={() => handleSchoolClick(school)}
                 >
-                  {school.logo ? (
-                    <CardMedia
-                      component="img"
-                      height="160"
-                      image={school.logo}
-                      alt={school.name}
-                      sx={{ objectFit: 'contain', p: 2 }}
-                    />
-                  ) : (
-                    <Box
-                      height={160}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      bgcolor="grey.100"
-                    >
-                      <SchoolIcon fontSize="large" color="action" />
-                    </Box>
-                  )}
+                  {/* School Logo Section */}
+                  <Box sx={{ position: 'relative', height: 160 }}>
+                    {school.logo ? (
+                      <>
+                        <CardMedia
+                          component="img"
+                          height="160"
+                          image={school.logo}
+                          alt={school.name}
+                          sx={{ 
+                            objectFit: 'contain', 
+                            p: 2,
+                            width: '100%',
+                            height: '100%'
+                          }}
+                        />
+                        <Box sx={{ 
+                          position: 'absolute', 
+                          top: 8, 
+                          right: 8,
+                          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 40,
+                          height: 40
+                        }}>
+                          {uploadingLogoForSchool === school.id ? (
+                            <CircularProgress size={24} />
+                          ) : (
+                            <IconButton
+                              component="label"
+                              size="small"
+                              disabled={uploadingLogoForSchool !== null}
+                            >
+                              <AddPhotoAlternateIcon color="primary" fontSize="small" />
+                              <input
+                                type="file"
+                                ref={getFileInputRef(school.id)}
+                                hidden
+                                accept="image/*"
+                                onChange={(e) => handleLogoUpload(e, school.id)}
+                                disabled={uploadingLogoForSchool !== null}
+                              />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </>
+                    ) : (
+                      <>
+                        <Box
+                          height="100%"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          bgcolor="grey.100"
+                        >
+                          <SchoolIcon fontSize="large" color="action" />
+                        </Box>
+                        <Button
+                          variant="contained"
+                          component="label"
+                          startIcon={<AddPhotoAlternateIcon />}
+                          sx={{
+                            position: 'absolute',
+                            bottom: 16,
+                            right: 16,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 1)',
+                            },
+                            backdropFilter: 'blur(4px)'
+                          }}
+                          disabled={uploadingLogoForSchool !== null}
+                        >
+                          {uploadingLogoForSchool === school.id ? 'Uploading...' : 'Add Logo'}
+                          <input
+                            type="file"
+                            ref={getFileInputRef(school.id)}
+                            hidden
+                            accept="image/*"
+                            onChange={(e) => handleLogoUpload(e, school.id)}
+                            disabled={uploadingLogoForSchool !== null}
+                          />
+                        </Button>
+                      </>
+                    )}
+                  </Box>
+
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Typography gutterBottom variant="h5" component="div">
                       {school.name}
@@ -166,6 +338,16 @@ const Schools = () => {
                       Established: {new Date(school.established_date).toLocaleDateString()}
                     </Typography>
                   </CardContent>
+                  <Box sx={{ p: 2 }}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={() => handleSchoolClick(school)}
+                      disabled={uploadingLogoForSchool !== null}
+                    >
+                      Select School
+                    </Button>
+                  </Box>
                 </Card>
               </Grid>
             ))}

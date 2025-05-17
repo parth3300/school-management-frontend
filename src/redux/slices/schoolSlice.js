@@ -12,14 +12,41 @@ const schoolEndpoints = {
   uploadLogo: API_ENDPOINTS.school.uploadLogo,
   getStats: API_ENDPOINTS.school.getStats
 };
+// Define custom thunks at top-level
+export const uploadLogo = createAsyncThunk(
+  'school/uploadLogo',
+  async ({ schoolId, file }) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const response = await api.post(schoolEndpoints.uploadLogo(schoolId), formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data.logoUrl;
+  }
+);
+
+
+export const fetchStats = createAsyncThunk(
+  'school/fetchStats',
+  async () => {
+    const response = await api.get(API_ENDPOINTS.school.getStats);
+    return response.data;
+  }
+);
 
 const { reducer, actions } = createApiSlice({
   name: 'school',
   api,
-  endpoints: schoolEndpoints,
+  endpoints: {
+    getAll: API_ENDPOINTS.school.getAll,
+    get: API_ENDPOINTS.school.get,
+    create: API_ENDPOINTS.school.create,
+    update: API_ENDPOINTS.school.update
+  },
   initialState: {
-    // School-specific initial state
-    data: null, // Single school object instead of array
+    data: null,
     stats: {
       totalStudents: 0,
       totalTeachers: 0,
@@ -28,83 +55,47 @@ const { reducer, actions } = createApiSlice({
     logoUploading: false
   },
   extraReducers: (builder) => {
-    // Custom thunk for uploading school logo
-    const uploadLogo = createAsyncThunk(
-      'school/uploadLogo',
-      async (file) => {
-        const formData = new FormData();
-        formData.append('logo', file);
-        const response = await api.post(schoolEndpoints.uploadLogo, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        return response.data.logoUrl;
-      }
-    );
-
-    // Custom thunk for fetching school stats
-    const fetchStats = createAsyncThunk(
-      'school/fetchStats',
-      async () => {
-        const response = await api.get(schoolEndpoints.getStats);
-        return response.data;
-      }
-    );
-
     builder
-      // Handle logo upload
       .addCase(uploadLogo.pending, (state) => {
         state.logoUploading = true;
       })
       .addCase(uploadLogo.fulfilled, (state, action) => {
         state.logoUploading = false;
+        // Proper immutable update
         if (state.data) {
-          state.data.logoUrl = action.payload;
+          state.data = state.data.map(school => 
+            school.id === action.meta.arg.schoolId 
+              ? { ...school, logoUrl: action.payload }
+              : school
+          );
         }
       })
       .addCase(uploadLogo.rejected, (state, action) => {
         state.logoUploading = false;
         state.error = action.error.message;
       })
-      
-      // Handle stats fetching
       .addCase(fetchStats.pending, (state) => {
         state.loading = true;
       })
       .addCase(fetchStats.fulfilled, (state, action) => {
         state.stats = action.payload;
+      })
+      .addCase(fetchStats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       });
-
-    return { 
-      ...actions, 
-      uploadLogo, 
-      fetchStats,
-      // Override fetch since we use get instead of getAll
-      fetch: createAsyncThunk(
-        'school/fetch',
-        async () => {
-          const response = await api.get(schoolEndpoints.get);
-          return response.data;
-        }
-      )
-    };
   }
 });
-
-// Custom selectors
-export const selectSchool = (state) => state.school.data;
-export const selectSchoolStats = (state) => state.school.stats;
-export const selectLogoUploading = (state) => state.school.logoUploading;
-
 export const { 
   fetch: fetchSchools, 
   create: createSchool, 
   update: updateSchool,
-  uploadLogo,
-  fetchStats,
   reset 
 } = actions;
-console.log("schools",actions);
+
+
+export const selectSchool = (state) => state.school.data;
+export const selectSchoolStats = (state) => state.school.stats;
+export const selectLogoUploading = (state) => state.school.logoUploading;
 
 export default reducer;

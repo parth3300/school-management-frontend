@@ -17,7 +17,7 @@ const API_ENDPOINTS = {
     create: '/schools/',
     update: (id) => `/schools/${id}/`,
     delete: (id) => `/schools/${id}/`,
-    uploadLogo: (id) => `/schools/${id}/upload-logo/`,
+    uploadLogo: (id) => `/schools/${id}/upload_logo/`,
     getStats: '/schools/stats/',
     staff: {
       base: '/schools/staff/',
