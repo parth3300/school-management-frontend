@@ -5,14 +5,13 @@ import API_ENDPOINTS from '../../api/endpoints';
 export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
-console.log(userData);
-    if(userData.user_type === "Visitor"){
-      delete userData.user_type
-      const profileResponse = await api.post(API_ENDPOINTS.auth.register, userData);
-      return profileResponse.data;
-
-    }
     try {
+      if(userData.user_type === "Visitor"){
+        delete userData.user_type
+        const profileResponse = await api.post(API_ENDPOINTS.auth.register, userData);
+        return profileResponse.data;
+  
+      }
       const profileEndpoint = userData.user_type === 'teacher' 
         ? API_ENDPOINTS.teachers 
         : API_ENDPOINTS.students;
@@ -51,20 +50,8 @@ console.log(userData);
       return profileResponse.data;
 
     } catch (err) {
-      if (err.response && err.response.data) {
-        if (err.response.data.errors) {
-          return rejectWithValue(err.response.data.errors);
-        }
-        if (typeof err.response.data === 'object') {
-          return rejectWithValue(err.response.data);
-        }
-        return rejectWithValue({ 
-          non_field_errors: [err.response.data] 
-        });
-      }
-      return rejectWithValue({ 
-        non_field_errors: ['Registration failed. Please try again.'] 
-      });
+          return rejectWithValue(err);
+
     }
   }
 );
@@ -211,9 +198,11 @@ const authSlice = createSlice({
         localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
       .addCase(register.rejected, (state, action) => {
+        console.log("in rejection");
+        
         state.loading = false;
         state.registrationSuccess = false;
-        state.error = action.payload;
+        state.error = action.payload.response.data;
       })
       
       // Login cases
@@ -229,6 +218,8 @@ const authSlice = createSlice({
         localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
       .addCase(login.rejected, (state, action) => {
+        console.log("rejjjjjjjjjjjjjjjjjjjjjjjjjj");
+        
         state.loading = false;
         state.error = action.payload;
       })

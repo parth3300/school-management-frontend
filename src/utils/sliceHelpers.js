@@ -2,14 +2,24 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 /**
- * Creates a standardized Redux slice for API data with enhanced logging
+ * Creates a standardized Redux slice for API data with notifications
  */
 export const createApiSlice = ({
   name,
   api,
   endpoints,
   initialState = {},
-  extraReducers = {}
+  extraReducers = {},
+  notificationMessages = {
+    fetchSuccess: 'Data loaded successfully',
+    fetchError: 'Failed to load data',
+    createSuccess: 'Created successfully',
+    createError: 'Failed to create',
+    updateSuccess: 'Updated successfully',
+    updateError: 'Failed to update',
+    deleteSuccess: 'Deleted successfully',
+    deleteError: 'Failed to delete',
+  }
 }) => {
   // Default initial state
   const defaultInitialState = {
@@ -19,26 +29,39 @@ export const createApiSlice = ({
     ...initialState
   };
 
-  // Helper function for consistent logging
-  const logApiCall = (operation, url, payload = null) => {
-    console.groupCollapsed(`[${name}] ${operation} API Call`);
-    console.log('Endpoint:', url);
-    if (payload) console.log('Payload:', payload);
-    console.groupEnd();
+  // Helper function to dispatch notifications
+  const handleNotification = (dispatch, { severity, message, error = null }) => {
+    const formattedMessage = error 
+      ? `${message}: ${error.detail || error.message || 'Unknown error'}`
+      : message;
+
+    dispatch({
+      type: 'notification/setNotification',
+      payload: {
+        open: true,
+        message: formattedMessage,
+        severity
+      }
+    });
   };
 
-  // Create async thunks with logging
+  // Create async thunks with notification handling
   const fetchThunk = createAsyncThunk(
     `${name}/fetch`,
-    async (_, { rejectWithValue }) => {
+    async (_, { dispatch, rejectWithValue }) => {
       try {
-        const url = endpoints.getAll;
-        logApiCall('FETCH', url);
-        const response = await api.get(url);
-        console.log(`[${name}] FETCH Response:`, response.data);
+        const response = await api.get(endpoints.getAll);
+        handleNotification(dispatch, {
+          severity: 'success',
+          message: notificationMessages.fetchSuccess
+        });
         return response.data;
       } catch (err) {
-        console.error(`[${name}] FETCH Error:`, err.response?.data || err.message);
+        handleNotification(dispatch, {
+          severity: 'error',
+          message: notificationMessages.fetchError,
+          error: err.response?.data || err.message
+        });
         return rejectWithValue(err.response?.data || err.message);
       }
     }
@@ -46,15 +69,20 @@ export const createApiSlice = ({
 
   const createThunk = createAsyncThunk(
     `${name}/create`,
-    async (payload, { rejectWithValue }) => {
+    async (payload, { dispatch, rejectWithValue }) => {
       try {
-        const url = endpoints.create;
-        logApiCall('CREATE', url, payload);
-        const response = await api.post(url, payload);
-        console.log(`[${name}] CREATE Response:`, response.data);
+        const response = await api.post(endpoints.create, payload);
+        handleNotification(dispatch, {
+          severity: 'success',
+          message: notificationMessages.createSuccess
+        });
         return response.data;
       } catch (err) {
-        console.error(`[${name}] CREATE Error:`, err.response?.data || err.message);
+        handleNotification(dispatch, {
+          severity: 'error',
+          message: notificationMessages.createError,
+          error: err.response?.data || err.message
+        });
         return rejectWithValue(err.response?.data || err.message);
       }
     }
@@ -62,15 +90,20 @@ export const createApiSlice = ({
 
   const updateThunk = createAsyncThunk(
     `${name}/update`,
-    async ({ id, data }, { rejectWithValue }) => {
+    async ({ id, data }, { dispatch, rejectWithValue }) => {
       try {
-        const url = endpoints.update(id);
-        logApiCall('UPDATE', url, data);
-        const response = await api.put(url, data);
-        console.log(`[${name}] UPDATE Response:`, response.data);
+        const response = await api.put(endpoints.update(id), data);
+        handleNotification(dispatch, {
+          severity: 'success',
+          message: notificationMessages.updateSuccess
+        });
         return response.data;
       } catch (err) {
-        console.error(`[${name}] UPDATE Error:`, err.response?.data || err.message);
+        handleNotification(dispatch, {
+          severity: 'error',
+          message: notificationMessages.updateError,
+          error: err.response?.data || err.message
+        });
         return rejectWithValue(err.response?.data || err.message);
       }
     }
@@ -78,15 +111,20 @@ export const createApiSlice = ({
 
   const deleteThunk = createAsyncThunk(
     `${name}/delete`,
-    async (id, { rejectWithValue }) => {
+    async (id, { dispatch, rejectWithValue }) => {
       try {
-        const url = endpoints.delete(id);
-        logApiCall('DELETE', url);
-        await api.delete(url);
-        console.log(`[${name}] DELETE Success for ID:`, id);
+        await api.delete(endpoints.delete(id));
+        handleNotification(dispatch, {
+          severity: 'success',
+          message: notificationMessages.deleteSuccess
+        });
         return id;
       } catch (err) {
-        console.error(`[${name}] DELETE Error:`, err.response?.data || err.message);
+        handleNotification(dispatch, {
+          severity: 'error',
+          message: notificationMessages.deleteError,
+          error: err.response?.data || err.message
+        });
         return rejectWithValue(err.response?.data || err.message);
       }
     }
@@ -102,50 +140,42 @@ export const createApiSlice = ({
       }
     },
     extraReducers: (builder) => {
-      // Standard async handling with logging
+      // Standard async handling
       builder
         // Fetch
         .addCase(fetchThunk.pending, (state) => {
-          console.log(`[${name}] FETCH Pending`);
           state.loading = true;
           state.error = null;
         })
         .addCase(fetchThunk.fulfilled, (state, action) => {
-          console.log(`[${name}] FETCH Fulfilled:`, action.payload);
           state.loading = false;
           state.data = action.payload;
         })
         .addCase(fetchThunk.rejected, (state, action) => {
-          console.error(`[${name}] FETCH Rejected:`, action.error);
           state.loading = false;
           state.error = action.payload || action.error.message;
         })
         
         // Create
         .addCase(createThunk.pending, (state) => {
-          console.log(`[${name}] CREATE Pending`);
           state.loading = true;
           state.error = null;
         })
         .addCase(createThunk.fulfilled, (state, action) => {
-          console.log(`[${name}] CREATE Fulfilled:`, action.payload);
           state.loading = false;
           state.data.push(action.payload);
         })
         .addCase(createThunk.rejected, (state, action) => {
-          console.error(`[${name}] CREATE Rejected:`, action.error);
           state.loading = false;
           state.error = action.payload || action.error.message;
         })
         
         // Update
         .addCase(updateThunk.pending, (state) => {
-          console.log(`[${name}] UPDATE Pending`);
           state.loading = true;
           state.error = null;
         })
         .addCase(updateThunk.fulfilled, (state, action) => {
-          console.log(`[${name}] UPDATE Fulfilled:`, action.payload);
           state.loading = false;
           const index = state.data.findIndex(item => item.id === action.payload.id);
           if (index !== -1) {
@@ -153,37 +183,30 @@ export const createApiSlice = ({
           }
         })
         .addCase(updateThunk.rejected, (state, action) => {
-          console.error(`[${name}] UPDATE Rejected:`, action.error);
           state.loading = false;
           state.error = action.payload || action.error.message;
         })
         
         // Delete
         .addCase(deleteThunk.pending, (state) => {
-          console.log(`[${name}] DELETE Pending`);
           state.loading = true;
           state.error = null;
         })
         .addCase(deleteThunk.fulfilled, (state, action) => {
-          console.log(`[${name}] DELETE Fulfilled for ID:`, action.payload);
           state.loading = false;
           state.data = state.data.filter(item => item.id !== action.payload);
         })
         .addCase(deleteThunk.rejected, (state, action) => {
-          console.error(`[${name}] DELETE Rejected:`, action.error);
           state.loading = false;
           state.error = action.payload || action.error.message;
         });
 
       // Add any custom extra reducers
       if (extraReducers) {
-        console.log(`[${name}] Adding custom extra reducers`);
         extraReducers(builder, { fetchThunk, createThunk, updateThunk, deleteThunk });
       }
     }
   });
-
-  console.log(`[${name}] Slice created with endpoints:`, endpoints);
 
   return {
     reducer: slice.reducer,

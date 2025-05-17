@@ -3,7 +3,7 @@ import { TextField, Button, Typography, Container } from '@mui/material';
 import AuthCard from './AuthCard';
 import GlobalLogin from './GlobalLogin';
 
-const StudentLogin = () => {
+const StudentAuth = () => {
   const loginForm = <GlobalLogin userType="Student"/>
 
   
@@ -30,4 +30,4 @@ const StudentLogin = () => {
   );
 };
 
-export default StudentLogin;
+export default StudentAuth;

@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { TextField, Button, Typography, Container } from '@mui/material';
 import AuthCard from './AuthCard';
-import { useNavigate } from 'react-router-dom';
-import api from '../../api/axios';
-import API_ENDPOINTS from '../../api/endpoints';
-import { login, register } from '../../redux/slices/authSlice';
-import { useDispatch } from 'react-redux';
+import { register } from '../../redux/slices/authSlice';
+import { useDispatch, useSelector } from 'react-redux';
 import GlobalLogin from './GlobalLogin';
+import { formatDjangoErrors } from '../../components/common/errorHelper';
 
-const VisitorLogin = () => {
-  const navigate = useNavigate();
+const VisitorAuth = () => {
   const [flipped, setFlipped] = useState(false); // << control flip here
   const dispatch = useDispatch();
 
@@ -26,7 +23,10 @@ const VisitorLogin = () => {
       [e.target.name]: e.target.value,
     }));
   };
+  const authState = useSelector((state) => state.auth);
 
+  console.log("authState",authState);
+  
   const handleRegister = async () => {
     try {
 
@@ -38,9 +38,13 @@ const VisitorLogin = () => {
           
           // Only navigate if registration was successful
           if (register.fulfilled.match(result)) {
-              setFlipped(false); // Flip to login after successful registration
+          }
+          if(authState.error){
+            formatDjangoErrors(authState.error)
+            return
           }
 
+          setFlipped(false); // Flip to login after successful registration
 
     } catch (err) {
       console.error('Registration error:', err);
@@ -57,16 +61,6 @@ const VisitorLogin = () => {
       ...prev,
       [e.target.name]: e.target.value,
     }));
-  };
-
-  const handleLogin = async () => {
-        console.log('Logging in with:', loginData);
-
-        const result = await dispatch(login(loginData));
-        if (login.fulfilled.match(result)) {
-          navigate('/dashboard');
-        }
-    // api.post('/login', loginData);
   };
 
   // Handle Enter key press to focus the next input or submit form
@@ -163,4 +157,4 @@ const VisitorLogin = () => {
   );
 };
 
-export default VisitorLogin;
+export default VisitorAuth;

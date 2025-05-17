@@ -93,11 +93,11 @@ const Schools = () => {
     try {
       await dispatch(uploadLogo({ schoolId, file })).unwrap();
       
-      setNotification({
-        open: true,
-        message: 'Logo uploaded successfully!',
-        severity: 'success'
-      });
+        setNotification({
+          open: true,
+          message: 'Logo uploaded successfully!',
+          severity: 'success'
+        });
       
       // Refresh schools data after successful upload
       dispatch(fetchSchools());

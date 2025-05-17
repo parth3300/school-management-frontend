@@ -161,7 +161,7 @@ const Dashboard = () => {
   const teacherState = useSelector(selectTeacherClasses) || {};
   const attendanceState = useSelector(selectTodayAttendance) || {};
   const examResultsSummary = useSelector(selectExamResultsSummary) || {};
-  const schoolState = useSelector(selectSchool) || {};
+  const schoolState = useSelector((state) => state.schools.data) || [];
 
   console.log("useSelector((state) => state.announcements.data)",useSelector((state) => state.announcements.data));
   

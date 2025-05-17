@@ -4,7 +4,7 @@ import { TextField, Button, Typography, Container } from '@mui/material';
 import AuthCard from './AuthCard';
 import GlobalLogin from './GlobalLogin';
 
-const AdminLogin = () => {
+const AdminAuth = () => {
   const loginForm = <GlobalLogin userType="Admin"/>
 
 
@@ -36,4 +36,4 @@ const AdminLogin = () => {
   );
 };
 
-export default AdminLogin;
+export default AdminAuth;

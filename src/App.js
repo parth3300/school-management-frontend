@@ -17,10 +17,10 @@ import Exams from './pages/Exams';
 import './styles/global.css';
 import Register from './pages/AUTH/Register';
 import NotFound from './components/common/NotFound';
-import TeacherLogin from './pages/AUTH/TeacherLogin';
-import AdminLogin from './pages/AUTH/AdminLogin';
-import StudentLogin from './pages/AUTH/StudentLogin';
-import VisitorLogin from './pages/AUTH/VisitorLogin';
+import TeacherLogin from './pages/AUTH/TeacherAuth';
+import AdminLogin from './pages/AUTH/AdminAuth';
+import StudentLogin from './pages/AUTH/StudentAuth';
+import VisitorLogin from './pages/AUTH/VisitorAuth';
 import Loader from './components/common/Loader';
 
 

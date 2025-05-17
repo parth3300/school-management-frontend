@@ -36,8 +36,7 @@ const FlipCardBack = styled(Card)({
   transform: 'rotateY(180deg)',
 });
 
-const AuthCard = ({ loginComponent, registerComponent }) => {
-  const [flipped, setFlipped] = useState(false);
+const AuthCard = ({ loginComponent, registerComponent, flipped, setFlipped }) => {
 
   return (
     <FlipCard>
