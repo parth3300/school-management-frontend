@@ -1,7 +1,6 @@
 // src/components/Loader.js
-import React from 'react';
 import { Player } from '@lottiefiles/react-lottie-player';
-import bookAnimation from '../assets/bookLoader.json';
+import bookAnimation from '../../assets/bookLoader.json';
 
 const Loader = () => {
   return (

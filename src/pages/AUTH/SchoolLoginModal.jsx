@@ -13,8 +13,8 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LockIcon from '@mui/icons-material/Lock';
-import api from '../api/axios';
-import API_ENDPOINTS from '../api/endpoints';
+import api from '../../api/axios';
+import API_ENDPOINTS from '../../api/endpoints';
 import RoleSelectionModal from './RoleSelectionModal';
 import { Navigate, useNavigate } from 'react-router-dom';
 

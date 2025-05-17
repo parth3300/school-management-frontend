@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { register } from '../redux/slices/authSlice';
+import { register } from '../../redux/slices/authSlice';
 import {
   Container,
   Box,
@@ -43,8 +43,8 @@ import {
   Image
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import API_ENDPOINTS from '../api/endpoints';
-import api from '../api/axios';
+import API_ENDPOINTS from '../../api/endpoints';
+import api from '../../api/axios';
 
 const defaultTheme = createTheme({
   palette: {

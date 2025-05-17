@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { clearAuthError, login, setAuthenticated } from '../redux/slices/authSlice';
+import { clearAuthError, login, setAuthenticated } from '../../redux/slices/authSlice';
 import { 
   Container, 
   Box, 
@@ -27,7 +27,7 @@ import {
   AdminPanelSettings
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { formatDjangoErrors } from '../components/common/errorHelper';
+import { formatDjangoErrors } from '../../components/common/errorHelper';
 
 const defaultTheme = createTheme({
   palette: {

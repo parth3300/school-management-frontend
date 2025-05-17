@@ -24,8 +24,8 @@ import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import RoleSelectionModal from './RoleSelectionModal';
-import SchoolLoginModal from './SchoolLoginModal';
+import RoleSelectionModal from './AUTH/RoleSelectionModal';
+import SchoolLoginModal from './AUTH/SchoolLoginModal';
 
 const Schools = () => {
   const dispatch = useDispatch();

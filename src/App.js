@@ -15,13 +15,13 @@ import Students from './pages/Students';
 import Attendance from './pages/Attendance';
 import Exams from './pages/Exams';
 import './styles/global.css';
-import Register from './pages/Register';
-import NotFound from './pages/NotFound';
-import TeacherLogin from './pages/TeacherLogin';
-import AdminLogin from './pages/AdminLogin';
-import StudentLogin from './pages/StudentLogin';
-import VisitorLogin from './pages/VisitorLogin';
-import Loader from './pages/Loader';
+import Register from './pages/AUTH/Register';
+import NotFound from './components/common/NotFound';
+import TeacherLogin from './pages/AUTH/TeacherLogin';
+import AdminLogin from './pages/AUTH/AdminLogin';
+import StudentLogin from './pages/AUTH/StudentLogin';
+import VisitorLogin from './pages/AUTH/VisitorLogin';
+import Loader from './components/common/Loader';
 
 
 function App() {

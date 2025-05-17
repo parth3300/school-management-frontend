@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { TextField, Button, Typography, Container } from '@mui/material';
 import AuthCard from './AuthCard';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
-import API_ENDPOINTS from '../api/endpoints';
-import { login, register } from '../redux/slices/authSlice';
+import api from '../../api/axios';
+import API_ENDPOINTS from '../../api/endpoints';
+import { login, register } from '../../redux/slices/authSlice';
 import { useDispatch } from 'react-redux';
 import GlobalLogin from './GlobalLogin';
 
