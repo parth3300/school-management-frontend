@@ -72,7 +72,6 @@ export const login = createAsyncThunk(
       const { access, refresh } = tokenResponse.data;
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
-      console.log("hiiiiiiiiiiiiiiiiii")
 
       // Step 2: Get user details
       const userResponse = await api.get(API_ENDPOINTS.auth.login, {
@@ -197,9 +196,7 @@ const authSlice = createSlice({
         state.registrationSuccess = true;
         localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
-      .addCase(register.rejected, (state, action) => {
-        console.log("in rejection");
-        
+      .addCase(register.rejected, (state, action) => {        
         state.loading = false;
         state.registrationSuccess = false;
         state.error = action.payload.response.data;
@@ -218,7 +215,6 @@ const authSlice = createSlice({
         localStorage.setItem('user', JSON.stringify(action.payload.user));
       })
       .addCase(login.rejected, (state, action) => {
-        console.log("rejjjjjjjjjjjjjjjjjjjjjjjjjj");
         
         state.loading = false;
         state.error = action.payload;

@@ -9,6 +9,8 @@ export const formatDjangoErrors = (error) => {
   
   // Handle non-field errors
   if (error.non_field_errors) {
+    console.log("nono fieldss");
+    
     return error.non_field_errors.join(' ');
   }
   

@@ -25,7 +25,7 @@ import {
 
 const Subjects = () => {
   const dispatch = useDispatch();
-  const { data: subjects, loading, error } = useSelector((state) => state.subjects);
+  const { data: subjects = [], loading, error } = useSelector((state) => state.subjects);
   const teachers = useSelector(selectSubjectTeachers);
   const classes = useSelector(selectSubjectClasses);
   const teachersLoading = useSelector(selectTeachersLoading);
@@ -33,6 +33,7 @@ const Subjects = () => {
 
   useEffect(() => {
     dispatch(fetchSubjects());
+    dispatch(fetchSubjectTeachers());
   }, [dispatch]);
 
   const handleDelete = (id) => {
@@ -60,6 +61,8 @@ const Subjects = () => {
     );
   }
 
+  console.log("subject",teachers);
+  
   return (
     <Box p={3}>
       <Typography variant="h4" mb={3}>

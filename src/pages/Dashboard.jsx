@@ -157,13 +157,17 @@ const Dashboard = () => {
 
   // Redux state selectors with proper initialization
   const authState = useSelector((state) => state.auth);
-  const announcements = useSelector((state) => state.announcements.data) || [];
-  const teacherState = useSelector(selectTeacherClasses) || {};
-  const attendanceState = useSelector(selectTodayAttendance) || {};
-  const examResultsSummary = useSelector(selectExamResultsSummary) || {};
-  const schoolState = useSelector((state) => state.schools.data) || [];
+  const announcements = useSelector((state) => state.announcements) || [];
+  const teacherState = useSelector((state) => state.teachers) || {};
+  const attendanceState = useSelector((state) => state.attendance) || {};
+  const examResultsSummary = useSelector((state) => state.exams) || {};
+  const schoolState= useSelector((state) => state.schools) || [];
 
-  console.log("useSelector((state) => state.announcements.data)",useSelector((state) => state.announcements.data));
+  console.log("useSelector((state) => state.announcements.data)",announcements,
+      teacherState,
+      attendanceState,
+      examResultsSummary,
+      schoolState);
   
   // Destructure with proper fallbacks
   const { 

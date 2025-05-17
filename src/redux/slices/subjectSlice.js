@@ -1,4 +1,3 @@
-// src/redux/slices/subjectSlice.js
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
@@ -9,69 +8,88 @@ const subjectEndpoints = {
   create: API_ENDPOINTS.subjects.create,
   update: (id) => API_ENDPOINTS.subjects.update(id),
   delete: (id) => API_ENDPOINTS.subjects.delete(id),
-  getTeachers: API_ENDPOINTS.subjects.teachers.base, // For fetching subject teachers
-  getClasses: API_ENDPOINTS.subjects.classes.base // For fetching classes offering the subject
+  getTeachers: API_ENDPOINTS.subjects.teachers.bySubject,
+  getClasses: API_ENDPOINTS.subjects.classes.base
 };
 
-const { reducer, actions } = createApiSlice({
+// Custom thunk for fetching subject teachers
+export const fetchSubjectTeachers = createAsyncThunk(
+  'subjects/fetchTeachers',
+  async (subjectId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(subjectEndpoints.getTeachers.get, {
+        params: { subject_id: subjectId }
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// Custom thunk for fetching classes offering the subject
+export const fetchSubjectClasses = createAsyncThunk(
+  'subjects/fetchClasses',
+  async (subjectId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(subjectEndpoints.getClasses, {
+        params: { subject_id: subjectId }
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// Custom thunk for fetching subject curriculum
+export const fetchSubjectCurriculum = createAsyncThunk(
+  'subjects/fetchCurriculum',
+  async (subjectId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`${subjectEndpoints.getAll}/${subjectId}/curriculum`);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+const initialState = {
+  data: [],
+  loading: false,
+  error: null,
+  subjectTeachers: [],
+  subjectClasses: [],
+  curriculum: [],
+  teachersLoading: false,
+  classesLoading: false,
+  curriculumLoading: false,
+  teachersError: null,
+  classesError: null,
+  curriculumError: null
+};
+
+const subjectSlice = createApiSlice({
   name: 'subjects',
   api,
   endpoints: subjectEndpoints,
-  initialState: {
-    // Subject-specific initial state
-    activeSubjects: 0,
-    subjectTeachers: [],
-    subjectClasses: [],
-    teachersLoading: false,
-    classesLoading: false,
-    teachersError: null,
-    classesError: null,
-    curriculum: [] // For subject curriculum/syllabus
+  initialState,
+  reducers: {
+    // Add clearSubjectDetails reducer
+    clearSubjectDetails: (state) => {
+      state.subjectTeachers = [];
+      state.subjectClasses = [];
+      state.curriculum = [];
+      state.teachersLoading = false;
+      state.classesLoading = false;
+      state.curriculumLoading = false;
+      state.teachersError = null;
+      state.classesError = null;
+      state.curriculumError = null;
+    }
   },
   extraReducers: (builder) => {
-    // Custom thunk for fetching subject teachers
-    const fetchSubjectTeachers = createAsyncThunk(
-      'subjects/fetchTeachers',
-      async (subjectId, { rejectWithValue }) => {
-        try {
-          const response = await api.get(subjectEndpoints.getTeachers, {
-            params: { subject_id: subjectId }
-          });
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response.data);
-        }
-      }
-    );
-
-    // Custom thunk for fetching classes offering the subject
-    const fetchSubjectClasses = createAsyncThunk(
-      'subjects/fetchClasses',
-      async (subjectId, { rejectWithValue }) => {
-        try {
-          const response = await api.get(subjectEndpoints.getClasses, {
-            params: { subject_id: subjectId }
-          });
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response.data);
-        }
-      }
-    );
-
-    // Custom thunk for fetching subject curriculum
-    const fetchSubjectCurriculum = createAsyncThunk(
-      'subjects/fetchCurriculum',
-      async (subjectId, { rejectWithValue }) => {
-        try {
-          const response = await api.get(`${subjectEndpoints.getAll}/${subjectId}/curriculum`);
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response.data);
-        }
-      }
-    );
-
     builder
       // Handle subject teachers fetching
       .addCase(fetchSubjectTeachers.pending, (state) => {
@@ -84,7 +102,7 @@ const { reducer, actions } = createApiSlice({
       })
       .addCase(fetchSubjectTeachers.rejected, (state, action) => {
         state.teachersLoading = false;
-        state.teachersError = action.payload || action.error.message;
+        state.teachersError = action.payload;
       })
       
       // Handle subject classes fetching
@@ -98,7 +116,7 @@ const { reducer, actions } = createApiSlice({
       })
       .addCase(fetchSubjectClasses.rejected, (state, action) => {
         state.classesLoading = false;
-        state.classesError = action.payload || action.error.message;
+        state.classesError = action.payload;
       })
       
       // Handle subject curriculum fetching
@@ -112,15 +130,8 @@ const { reducer, actions } = createApiSlice({
       })
       .addCase(fetchSubjectCurriculum.rejected, (state, action) => {
         state.curriculumLoading = false;
-        state.curriculumError = action.payload || action.error.message;
+        state.curriculumError = action.payload;
       });
-
-    return { 
-      ...actions, 
-      fetchSubjectTeachers,
-      fetchSubjectClasses,
-      fetchSubjectCurriculum
-    };
   }
 });
 
@@ -135,14 +146,13 @@ export const selectTeachersError = (state) => state.subjects.teachersError;
 export const selectClassesError = (state) => state.subjects.classesError;
 export const selectCurriculumError = (state) => state.subjects.curriculumError;
 
+// Export actions including the new clearSubjectDetails
 export const { 
   fetch: fetchSubjects, 
   create: createSubject, 
   update: updateSubject, 
   delete: deleteSubject,
-  fetchSubjectTeachers,
-  fetchSubjectClasses,
-  fetchSubjectCurriculum
-} = actions;
+  reset
+} = subjectSlice.actions;
 
-export default reducer;
+export default subjectSlice.reducer;

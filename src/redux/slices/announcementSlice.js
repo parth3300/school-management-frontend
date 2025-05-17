@@ -59,7 +59,6 @@ export const selectLatestAnnouncements = (state) => state.announcements.latestAn
 export const selectAnnouncementsLoading = (state) => state.announcements.loading;
 export const selectAnnouncementsError = (state) => state.announcements.error;
 
-console.log("actionsactionsactions",actions);
 
 // Actions
 export const {

@@ -1,4 +1,3 @@
-// src/redux/slices/studentSlice.js
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
@@ -9,60 +8,64 @@ const studentEndpoints = {
   create: API_ENDPOINTS.students.create,
   update: (id) => API_ENDPOINTS.students.update(id),
   delete: (id) => API_ENDPOINTS.students.delete(id),
-  getCourses: API_ENDPOINTS.students.courses.base, // For fetching student's courses
-  getAttendance: API_ENDPOINTS.students.attendance.base // For fetching student's attendance
+  getCourses: API_ENDPOINTS.students.courses.base,
+  getAttendance: API_ENDPOINTS.students.attendance.base,
+};
+
+// Async thunk to fetch student courses
+export const fetchStudentCourses = createAsyncThunk(
+  'students/fetchCourses',
+  async (studentId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(studentEndpoints.getCourses, {
+        params: { student_id: studentId }
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// Async thunk to fetch student attendance
+export const fetchStudentAttendance = createAsyncThunk(
+  'students/fetchAttendance',
+  async ({ studentId, dateRange }, { rejectWithValue }) => {
+    try {
+      const response = await api.get(studentEndpoints.getAttendance, {
+        params: {
+          student_id: studentId,
+          ...dateRange
+        }
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+const initialState = {
+  data: [],
+  loading: false,
+  error: null,
+  activeStudents: 0,
+  studentCourses: [],
+  studentAttendance: [],
+  coursesLoading: false,
+  attendanceLoading: false,
+  coursesError: null,
+  attendanceError: null
 };
 
 const { reducer, actions } = createApiSlice({
   name: 'students',
   api,
   endpoints: studentEndpoints,
-  initialState: {
-    // Student-specific initial state
-    activeStudents: 0,
-    studentCourses: [],
-    studentAttendance: [],
-    coursesLoading: false,
-    attendanceLoading: false,
-    coursesError: null,
-    attendanceError: null
-  },
+  initialState,
   extraReducers: (builder) => {
-    // Custom thunk for fetching student's courses
-    const fetchStudentCourses = createAsyncThunk(
-      'students/fetchCourses',
-      async (studentId, { rejectWithValue }) => {
-        try {
-          const response = await api.get(studentEndpoints.getCourses, {
-            params: { student_id: studentId }
-          });
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response.data);
-        }
-      }
-    );
-
-    // Custom thunk for fetching student's attendance
-    const fetchStudentAttendance = createAsyncThunk(
-      'students/fetchAttendance',
-      async ({ studentId, dateRange }, { rejectWithValue }) => {
-        try {
-          const response = await api.get(studentEndpoints.getAttendance, {
-            params: { 
-              student_id: studentId,
-              ...dateRange 
-            }
-          });
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response.data);
-        }
-      }
-    );
-
+    // Handle fetchStudentCourses lifecycle
     builder
-      // Handle student courses fetching
       .addCase(fetchStudentCourses.pending, (state) => {
         state.coursesLoading = true;
         state.coursesError = null;
@@ -73,10 +76,11 @@ const { reducer, actions } = createApiSlice({
       })
       .addCase(fetchStudentCourses.rejected, (state, action) => {
         state.coursesLoading = false;
-        state.coursesError = action.payload || action.error.message;
-      })
-      
-      // Handle student attendance fetching
+        state.coursesError = action.payload;
+      });
+
+    // Handle fetchStudentAttendance lifecycle
+    builder
       .addCase(fetchStudentAttendance.pending, (state) => {
         state.attendanceLoading = true;
         state.attendanceError = null;
@@ -87,32 +91,32 @@ const { reducer, actions } = createApiSlice({
       })
       .addCase(fetchStudentAttendance.rejected, (state, action) => {
         state.attendanceLoading = false;
-        state.attendanceError = action.payload || action.error.message;
+        state.attendanceError = action.payload;
       });
-
-    return { 
-      ...actions, 
-      fetchStudentCourses,
-      fetchStudentAttendance
-    };
   }
 });
 
 // Selectors
+export const selectStudents = (state) => state.students.data;
+export const selectLoading = (state) => state.students.loading;
+export const selectError = (state) => state.students.error;
+
 export const selectStudentCourses = (state) => state.students.studentCourses;
-export const selectStudentAttendance = (state) => state.students.studentAttendance;
 export const selectCoursesLoading = (state) => state.students.coursesLoading;
-export const selectAttendanceLoading = (state) => state.students.attendanceLoading;
 export const selectCoursesError = (state) => state.students.coursesError;
+
+export const selectStudentAttendance = (state) => state.students.studentAttendance;
+export const selectAttendanceLoading = (state) => state.students.attendanceLoading;
 export const selectAttendanceError = (state) => state.students.attendanceError;
 
-export const { 
-  fetch: fetchStudents, 
-  create: createStudent, 
-  update: updateStudent, 
+// Export your normal CRUD actions from createApiSlice
+export const {
+  fetch: fetchStudents,
+  create: createStudent,
+  update: updateStudent,
   delete: deleteStudent,
-  fetchStudentCourses,
-  fetchStudentAttendance
 } = actions;
+
+
 
 export default reducer;

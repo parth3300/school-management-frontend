@@ -23,21 +23,26 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import StudentForm from '../components/students/StudentForm';
+
 import {
   fetchStudents,
   createStudent,
   updateStudent,
   deleteStudent,
 } from '../redux/slices/studentSlice';
+
 import { fetchClasses } from '../redux/slices/classSlice';
 
 const Students = () => {
   const dispatch = useDispatch();
-  const { students, loading, error } = useSelector((state) => state.student);
-  const { classes } = useSelector((state) => state.class);
+  const theme = useTheme();
+
+  // Get students and classes from store with safe defaults
+  const { data: students = [], loading, error } = useSelector((state) => state.students);
+  const { classes = [] } = useSelector((state) => state.classes);
+
   const [openForm, setOpenForm] = useState(false);
   const [currentStudent, setCurrentStudent] = useState(null);
-  const theme = useTheme();
 
   useEffect(() => {
     dispatch(fetchStudents());
@@ -70,8 +75,11 @@ const Students = () => {
   };
 
   const getInitials = (student) => {
-    return `${student.user.first_name?.[0] || ''}${student.user.last_name?.[0] || ''}`;
+    const first = student.user?.first_name?.[0] || '';
+    const last = student.user?.last_name?.[0] || '';
+    return `${first}${last}`.toUpperCase();
   };
+console.log("clasee",students);
 
   return (
     <Container maxWidth="lg">
@@ -132,20 +140,20 @@ const Students = () => {
                         <TableCell>
                           <Avatar
                             src={student.photo}
-                            alt={`${student.user.first_name} ${student.user.last_name}`}
+                            alt={`${student.user?.first_name || ''} ${student.user?.last_name || ''}`}
                           >
                             {getInitials(student)}
                           </Avatar>
                         </TableCell>
                         <TableCell>
-                          {student.user.first_name} {student.user.last_name}
+                          {student.user?.first_name || ''} {student.user?.last_name || ''}
                         </TableCell>
-                        <TableCell>{student.admission_number}</TableCell>
+                        <TableCell>{student.admission_number || '—'}</TableCell>
                         <TableCell>
-                          {classes.find((c) => c.id === student.current_class)?.name || '—'}
+                          { student.current_class.name  || '—'}
                         </TableCell>
                         <TableCell>
-                          {student.parent_name} ({student.parent_phone})
+                          {student.parent_name || '—'} ({student.parent_phone || '—'})
                         </TableCell>
                         <TableCell align="right">
                           <Tooltip title="Edit">
