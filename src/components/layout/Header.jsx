@@ -12,17 +12,23 @@ import {
   AccountCircle,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useDispatch } from 'react-redux';
+import { logout } from '../../redux/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
 
 const Header = ({ onMenuToggle = () => {} }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const open = Boolean(anchorEl);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
   const handleLogout = () => {
-    console.log('User logged out');
+    dispatch(logout())
+    navigate('/');
     handleClose();
   };
 

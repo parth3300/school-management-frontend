@@ -5,6 +5,7 @@ import { TextField, Button, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { login } from '../../redux/slices/authSlice';
+import { capitalizeFirst } from '../../components/common/constants';
 
 const GlobalLogin = ({ userType }) => {
   const dispatch = useDispatch();
@@ -56,7 +57,7 @@ const GlobalLogin = ({ userType }) => {
 
   return (
     <>
-      <Typography variant="h5" gutterBottom>{userType} Login</Typography>
+      <Typography variant="h5" gutterBottom>{capitalizeFirst(userType)} Login</Typography>
       <TextField
         name="email"
         label="Email"

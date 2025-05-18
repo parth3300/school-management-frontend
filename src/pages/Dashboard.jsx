@@ -43,7 +43,7 @@ import {
   Person,
   School as SchoolIcon
 } from '@mui/icons-material';
-import { fetchAnnouncements, fetchLatestAnnouncements, selectLatestAnnouncements } from '../redux/slices/announcementSlice';
+import { fetchAnnouncements, selectAnnouncements } from '../redux/slices/announcementSlice';
 import { fetchTeacherClasses, selectTeacherClasses } from '../redux/slices/teacherSlice';
 import { fetchTodayAttendance, selectTodayAttendance } from '../redux/slices/attendanceSlice';
 import { fetchExamResultsSummary, selectExamResultsSummary } from '../redux/slices/examResultsSlice';
@@ -141,6 +141,9 @@ const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
+  // Get user role from localStorage
+  const userRole = localStorage.getItem('role');
+  
   // Local state
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -156,20 +159,15 @@ const Dashboard = () => {
 
   // Redux state selectors
   const authState = useSelector((state) => state.auth);
-  const { data: announcements = [],  } = useSelector((state) => state.announcements);
+  const { data: announcements = [], loading: announcementsLoading } = useSelector((state) => state.announcements);
   const { classes, loading: classesLoading, error: classesError } = useSelector(selectTeacherClasses);
   const attendanceData = useSelector(selectTodayAttendance);
   const examResultsSummary = useSelector(selectExamResultsSummary);
   const schoolState = useSelector(selectSchool);
-console.log("announcements222",announcements);
 
   // Destructure with proper fallbacks
   const { 
-    user = {}, 
-    isAuthenticated = false,
-    isAdmin = false,
-    isTeacher = false,
-    isStudent = false
+    user = {}
   } = authState || {};
 
   // Memoized data calculations
@@ -191,12 +189,16 @@ console.log("announcements222",announcements);
     try {
       setLoading(true);
       await Promise.all([
-        dispatch(fetchAnnouncements()),
         dispatch(fetchTeacherClasses()),
         dispatch(fetchTodayAttendance()),
         dispatch(fetchExamResultsSummary()),
         dispatch(fetchSchools())
       ]);
+
+      // Only fetch announcements if not already loaded
+      if (!announcements.length) {
+        await dispatch(fetchAnnouncements());
+      }
 
       setStats(calculateStats());
       setLastRefresh(dayjs());
@@ -205,33 +207,21 @@ console.log("announcements222",announcements);
     } finally {
       setLoading(false);
     }
-  }, [dispatch, calculateStats]);
-
-  // Initial data load
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
-    loadDashboardData();
-  }, [,isAuthenticated, navigate, loadDashboardData]);
+  }, [dispatch, calculateStats, announcements.length]);
 
   // Filter announcements based on user role
   useEffect(() => {
-    console.log("announcements",announcements.length);
-    
     if (!announcements?.length) return;
 
     let filtered = [];
     
-    if (isAdmin) {
+    if (userRole === 'admin') {
       filtered = announcements;
-    } else if (isTeacher) {
+    } else if (userRole === 'teacher') {
       filtered = announcements.filter(ann => 
         ann.audience === 'TEA' || ann.audience === 'ALL'
       );
-    } else if (isStudent) {
+    } else if (userRole === 'student') {
       filtered = announcements.filter(ann => 
         ann.audience === 'STU' || ann.audience === 'ALL'
       );
@@ -240,11 +230,14 @@ console.log("announcements222",announcements);
         ann.audience === 'ALL'
       );
     }
-
-    console.log("filtered",filtered);
     
     setFilteredAnnouncements(filtered || []);
-  }, [ announcements,isAdmin, isTeacher, isStudent]);
+  }, [announcements, userRole]);
+
+  // Initial data load
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleRefresh = () => {
     loadDashboardData();
@@ -255,7 +248,7 @@ console.log("announcements222",announcements);
   };
 
   // Loading state
-  if (loading ) {
+  if (loading || announcementsLoading || classesLoading) {
     return (
       <Box 
         display="flex" 
@@ -385,15 +378,15 @@ console.log("announcements222",announcements);
   const getTabs = () => {
     const tabs = [];
     
-    if (isAdmin) {
+    if (userRole === 'admin') {
       tabs.push({ label: 'All', value: 'ALL', icon: <SchoolIcon /> });
     }
     
-    if (isAdmin || isTeacher) {
+    if (userRole === 'admin' || userRole === 'teacher') {
       tabs.push({ label: 'Teachers', value: 'TEA', icon: <Person /> });
     }
     
-    if (isAdmin || isStudent) {
+    if (userRole === 'admin' || userRole === 'student') {
       tabs.push({ label: 'Students', value: 'STU', icon: <SupervisedUserCircle /> });
     }
     
@@ -554,9 +547,9 @@ console.log("announcements222",announcements);
                     <Typography variant="h6">
                       Recent Announcements
                     </Typography>
-                    {stats.announcement > 0 && (
+                    {stats.unreadAnnouncements > 0 && (
                       <Chip 
-                        label={`${stats.announcement} new`}
+                        label={`${stats.unreadAnnouncements} new`}
                         size="small"
                         color="warning"
                         sx={{ ml: 1 }}

@@ -1,5 +1,5 @@
 // src/components/SchoolLoginModal.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   Box,
@@ -39,6 +39,16 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [showRoleSelection, setShowRoleSelection] = useState(false);
 
+
+    const passwordInputRef = useRef(null); // ✅ 1. Create ref
+
+  // ✅ 2. Focus the input when modal opens
+  useEffect(() => {
+    if (open && passwordInputRef.current) {
+      // Short timeout ensures modal is mounted before focus
+      setTimeout(() => passwordInputRef.current.focus(), 100);
+    }
+  }, [open]);
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -64,7 +74,7 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
 
   const handleRoleSelected = (role) => {
     localStorage.setItem('role', role);
-    localStorage.setItem('schoolId', school.id);
+    localStorage.setItem('school_id', school.id);
 
     // Close both modals
     setShowRoleSelection(false);
@@ -112,6 +122,7 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
 
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
+              inputRef={passwordInputRef} // ✅ 3. Attach ref here
               margin="normal"
               required
               fullWidth

@@ -1,57 +1,29 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
+import { capitalizeFirst } from '../../components/common/constants';
+
 
 export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-      if(userData.user_type === "Visitor"){
-        delete userData.user_type
-        const profileResponse = await api.post(API_ENDPOINTS.auth.register, userData);
-        return profileResponse.data;
-  
-      }
-      const profileEndpoint = userData.user_type === 'teacher' 
-        ? API_ENDPOINTS.teachers 
-        : API_ENDPOINTS.students;
+      const role = localStorage.getItem('role') || 'Visitor';
 
-      const user = {
-        username: userData.username,
+      const capitalizedRole = capitalizeFirst(role);
+
+      const payload = {
+        role: capitalizedRole,
         email: userData.email,
+        name: userData.name,
         password: userData.password,
-        first_name: userData.first_name,
-        last_name: userData.last_name
+        re_password: userData.re_password
       };
 
-      const profileData = {
-        ...(userData.user_type === 'teacher' ? {
-          user,
-          phone: userData.phone,
-          address: userData.address,
-          date_of_birth: userData.date_of_birth,
-          joining_date: userData.joining_date,
-          qualification: userData.qualification,
-          subjects: userData.subjects || []
-        } : {
-          user,
-          current_class_id: userData.current_class,
-          date_of_birth: userData.date_of_birth,
-          gender: userData.gender,
-          address: userData.address,
-          phone: userData.phone,
-          parent_name: userData.parent_name,
-          parent_phone: userData.parent_phone,
-          admission_date: new Date().toISOString().split('T')[0],
-        })
-      };
-
-      const profileResponse = await api.post(profileEndpoint, profileData);
-      return profileResponse.data;
-
+      await api.post(API_ENDPOINTS.auth.register, payload);
+      
     } catch (err) {
-          return rejectWithValue(err);
-
+      return rejectWithValue(err);
     }
   }
 );
@@ -169,6 +141,8 @@ const authSlice = createSlice({
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
+      localStorage.removeItem('role');
+      localStorage.removeItem('school_id');
     },
     clearAuthError(state) {
       state.error = null;

@@ -24,10 +24,6 @@ const VisitorAuth = () => {
     password: '',
     re_password: '',
   });
-  const [loginData, setLoginData] = useState({
-    email: '',
-    password: '',
-  });
 
   // Clear errors when component mounts or when flipped changes
   useEffect(() => {
@@ -50,23 +46,16 @@ const VisitorAuth = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     dispatch(clearAuthError());
+    console.log('Registering with:', formData);
     
     const result = await dispatch(register({
-      ...formData,
-      user_type: "Visitor"
-    }));
+      ...formData    }));
 
     if (register.fulfilled.match(result)) {
       setFlipped(false); // Flip to login after successful registration
     }
   };
 
-  const handleLoginChange = (e) => {
-    setLoginData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
 
   const handleKeyPress = (e, nextInputRef) => {
     if (e.key === 'Enter') {

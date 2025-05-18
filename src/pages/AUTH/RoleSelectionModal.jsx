@@ -55,7 +55,7 @@ const RoleSelectionModal = ({ open, onClose, onRoleSelect, school }) => {
     },
     {
       id: 'visitor',
-      title: 'Regular User',
+      title: 'Visitor',
       description: 'Explore public information about the school',
       icon: <PersonIcon fontSize="large" />,
       color: 'success'
