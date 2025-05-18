@@ -17,6 +17,7 @@ import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import RoleSelectionModal from './RoleSelectionModal';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { VISITOR_USER_ROLE } from '../../components/common/constants';
 
 const style = {
   position: 'absolute',
@@ -68,7 +69,7 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
     // Close both modals
     setShowRoleSelection(false);
     onClose();
-    if (role === 'visitor') {
+    if (role === VISITOR_USER_ROLE) {
       // Visitors don't need school context, redirect directly
       navigate('/visitor-login');
     } else {

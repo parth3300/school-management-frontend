@@ -43,14 +43,13 @@ import {
   Person,
   School as SchoolIcon
 } from '@mui/icons-material';
-import { fetchAnnouncements, selectLatestAnnouncements } from '../redux/slices/announcementSlice';
-import { fetchTeacherClasses, selectCurrentTeacher, selectTeacherClasses } from '../redux/slices/teacherSlice';
+import { fetchAnnouncements, fetchLatestAnnouncements, selectLatestAnnouncements } from '../redux/slices/announcementSlice';
+import { fetchTeacherClasses, selectTeacherClasses } from '../redux/slices/teacherSlice';
 import { fetchTodayAttendance, selectTodayAttendance } from '../redux/slices/attendanceSlice';
 import { fetchExamResultsSummary, selectExamResultsSummary } from '../redux/slices/examResultsSlice';
 import { fetchSchools, selectSchool } from '../redux/slices/schoolSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { styled } from '@mui/material/styles';
-import { selectExamSchedule } from '../redux/slices/examSlice';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import API_ENDPOINTS from '../api/endpoints';
@@ -151,24 +150,19 @@ const Dashboard = () => {
     pendingGrades: 0,
     unreadAnnouncements: 0
   });
-  const [lastRefresh, setLastRefresh] = useState(dayjs());
+  const [lastRefresh, setLastRefresh] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
 
-  // Redux state selectors with proper initialization
+  // Redux state selectors
   const authState = useSelector((state) => state.auth);
-  const announcements = useSelector((state) => state.announcements) || [];
-  const teacherState = useSelector((state) => state.teachers) || {};
-  const attendanceState = useSelector((state) => state.attendance) || {};
-  const examResultsSummary = useSelector((state) => state.exams) || {};
-  const schoolState= useSelector((state) => state.schools) || [];
+  const { data: announcements = [],  } = useSelector((state) => state.announcements);
+  const { classes, loading: classesLoading, error: classesError } = useSelector(selectTeacherClasses);
+  const attendanceData = useSelector(selectTodayAttendance);
+  const examResultsSummary = useSelector(selectExamResultsSummary);
+  const schoolState = useSelector(selectSchool);
+console.log("announcements222",announcements);
 
-  console.log("useSelector((state) => state.announcements.data)",announcements,
-      teacherState,
-      attendanceState,
-      examResultsSummary,
-      schoolState);
-  
   // Destructure with proper fallbacks
   const { 
     user = {}, 
@@ -177,94 +171,83 @@ const Dashboard = () => {
     isTeacher = false,
     isStudent = false
   } = authState || {};
-  
-  const {
-    classes = [],
-    loading: classesLoading = false,
-    error: classesError = null
-  } = teacherState;
-
-  const {
-    stats: attendanceStats = {},
-    loading: attendanceLoading = false,
-    error: attendanceError = null
-  } = attendanceState;
-
-  const {
-    summary: examSummary = {},
-    loading: examLoading = false,
-    error: examError = null
-  } = examResultsSummary;
-
-  // Filter announcements based on user role
-  useEffect(() => {
-    if (!announcements.length) return;
-
-    let filtered = [];
-    
-    if (isAdmin) {
-      // Admins see all announcements
-      filtered = announcements;
-    } else if (isTeacher) {
-      // Teachers see teacher and all announcements
-      filtered = announcements.filter(ann => 
-        ann.audience === 'TEA' || ann.audience === 'ALL'
-      );
-    } else if (isStudent) {
-      // Students see student and all announcements
-      filtered = announcements.filter(ann => 
-        ann.audience === 'STU' || ann.audience === 'ALL'
-      );
-    }
-
-    setFilteredAnnouncements(filtered);
-  }, [announcements, isAdmin, isTeacher, isStudent]);
 
   // Memoized data calculations
   const calculateStats = useCallback(() => {
-    const totalStudents = classes.reduce((acc, cls) => acc + (cls.students_count || 0), 0);
-    const unreadAnnouncements = filteredAnnouncements.filter(a => !a.read).length;
+    const totalStudents = classes?.reduce((acc, cls) => acc + (cls.students_count || 0), 0) || 0;
+    const unreadAnnouncements = filteredAnnouncements?.filter(a => !a.read).length || 0;
     
     return {
-      totalClasses: classes.length,
+      totalClasses: classes?.length || 0,
       totalStudents,
-      attendanceRate: attendanceStats.average_attendance_rate || 0,
-      pendingGrades: examSummary.pending_grades || 0,
+      attendanceRate: attendanceData?.average_attendance_rate || 0,
+      pendingGrades: examResultsSummary?.pending_grades || 0,
       unreadAnnouncements
     };
-  }, [classes, filteredAnnouncements, attendanceStats, examSummary]);
+  }, [classes, filteredAnnouncements, attendanceData, examResultsSummary]);
 
-  // Data loading effect
+  // Data loading function
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        dispatch(fetchAnnouncements()),
+        dispatch(fetchTeacherClasses()),
+        dispatch(fetchTodayAttendance()),
+        dispatch(fetchExamResultsSummary()),
+        dispatch(fetchSchools())
+      ]);
+
+      setStats(calculateStats());
+      setLastRefresh(dayjs());
+    } catch (error) {
+      console.error('Dashboard loading error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, calculateStats]);
+
+  // Initial data load
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
 
-    const loadDashboardData = async () => {
-      try {
-        setLoading(true);
-        await Promise.all([
-          dispatch(fetchAnnouncements()),
-          dispatch(fetchTeacherClasses()),
-          dispatch(fetchTodayAttendance()),
-          dispatch(fetchExamResultsSummary()),
-          dispatch(fetchSchools())
-        ]);
-
-        setStats(calculateStats());
-      } catch (error) {
-        console.error('Dashboard loading error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadDashboardData();
-  }, [dispatch, isAuthenticated, navigate, lastRefresh, calculateStats]);
+  }, [,isAuthenticated, navigate, loadDashboardData]);
+
+  // Filter announcements based on user role
+  useEffect(() => {
+    console.log("announcements",announcements.length);
+    
+    if (!announcements?.length) return;
+
+    let filtered = [];
+    
+    if (isAdmin) {
+      filtered = announcements;
+    } else if (isTeacher) {
+      filtered = announcements.filter(ann => 
+        ann.audience === 'TEA' || ann.audience === 'ALL'
+      );
+    } else if (isStudent) {
+      filtered = announcements.filter(ann => 
+        ann.audience === 'STU' || ann.audience === 'ALL'
+      );
+    } else {
+      filtered = announcements.filter(ann => 
+        ann.audience === 'ALL'
+      );
+    }
+
+    console.log("filtered",filtered);
+    
+    setFilteredAnnouncements(filtered || []);
+  }, [ announcements,isAdmin, isTeacher, isStudent]);
 
   const handleRefresh = () => {
-    setLastRefresh(dayjs());
+    loadDashboardData();
   };
 
   const handleTabChange = (event, newValue) => {
@@ -272,7 +255,7 @@ const Dashboard = () => {
   };
 
   // Loading state
-  if (loading || classesLoading || attendanceLoading || examLoading) {
+  if (loading ) {
     return (
       <Box 
         display="flex" 
@@ -291,7 +274,7 @@ const Dashboard = () => {
   }
 
   // Error states
-  const errors = [classesError, attendanceError, examError].filter(Boolean);
+  const errors = [classesError].filter(Boolean);
   if (errors.length > 0) {
     return (
       <Box sx={{ p: 3 }}>
@@ -318,9 +301,9 @@ const Dashboard = () => {
   }
 
   // Data preparation
-  const firstName = user.first_name || '';
-  const schoolName = schoolState.name || 'School name not available';
-  const academicYear = schoolState.current_academic_year?.name || 'Not specified';
+  const firstName = user?.first_name || '';
+  const schoolName = schoolState?.name || 'School name not available';
+  const academicYear = schoolState?.current_academic_year?.name || 'Not specified';
 
   // Navigation handler
   const navigateTo = (path) => navigate(path);
@@ -357,14 +340,14 @@ const Dashboard = () => {
   };
 
   // Upcoming classes with proper data handling
-  const upcomingClasses = classes.slice(0, 3).map(cls => ({
+  const upcomingClasses = classes?.slice(0, 3).map(cls => ({
     id: cls.id || Math.random().toString(36).substr(2, 9),
     name: cls.name || 'Unnamed Class',
     subject: cls.subjects?.[0]?.name || cls.subjects?.[0] || 'General',
     students_count: cls.students_count || 0,
     room: cls.room || 'N/A',
     nextSession: cls.next_session || dayjs().add(Math.random() * 7, 'day').toISOString()
-  }));
+  })) || [];
 
   // Stats cards data
   const statCards = [
@@ -430,7 +413,7 @@ const Dashboard = () => {
       return filteredAnnouncements;
     }
     
-    return filteredAnnouncements.filter(ann => ann.audience === currentTab.value);
+    return filteredAnnouncements?.filter(ann => ann.audience === currentTab.value) || [];
   };
 
   const currentAnnouncements = getFilteredAnnouncements();
@@ -480,6 +463,11 @@ const Dashboard = () => {
             <Typography variant="subtitle1" color="text.secondary">
               {dayjs().format('dddd, MMMM D, YYYY')}
             </Typography>
+            {lastRefresh && (
+              <Typography variant="caption" color="text.secondary">
+                Last updated: {formatRelativeTime(lastRefresh)}
+              </Typography>
+            )}
           </Box>
           
           <Box display="flex" alignItems="center" gap={2}>
@@ -566,9 +554,9 @@ const Dashboard = () => {
                     <Typography variant="h6">
                       Recent Announcements
                     </Typography>
-                    {stats.unreadAnnouncements > 0 && (
+                    {stats.announcement > 0 && (
                       <Chip 
-                        label={`${stats.unreadAnnouncements} new`}
+                        label={`${stats.announcement} new`}
                         size="small"
                         color="warning"
                         sx={{ ml: 1 }}
@@ -782,7 +770,7 @@ const Dashboard = () => {
                     ))}
                   </AnimatePresence>
                   
-                  {classes.length === 0 && (
+                  {classes?.length === 0 && (
                     <ListItem>
                       <ListItemText 
                         primary="No classes assigned" 
@@ -791,7 +779,7 @@ const Dashboard = () => {
                     </ListItem>
                   )}
                   
-                  {classes.length > 0 && (
+                  {classes?.length > 0 && (
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
                       <Button 
                         endIcon={<ArrowForward />}
@@ -848,7 +836,7 @@ const Dashboard = () => {
                     {schoolName}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {schoolState.address || 'Address not available'}
+                    {schoolState?.address || 'Address not available'}
                   </Typography>
                 </Box>
                 
@@ -866,7 +854,7 @@ const Dashboard = () => {
                       Established
                     </Typography>
                     <Typography variant="body2">
-                      {schoolState.established_date 
+                      {schoolState?.established_date 
                         ? dayjs(schoolState.established_date).format('YYYY') 
                         : 'N/A'}
                     </Typography>
@@ -876,7 +864,7 @@ const Dashboard = () => {
                       Phone
                     </Typography>
                     <Typography variant="body2">
-                      {schoolState.phone || 'N/A'}
+                      {schoolState?.phone || 'N/A'}
                     </Typography>
                   </Grid>
                   <Grid item xs={6}>
@@ -884,7 +872,7 @@ const Dashboard = () => {
                       Email
                     </Typography>
                     <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-                      {schoolState.email || 'N/A'}
+                      {schoolState?.email || 'N/A'}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -936,14 +924,14 @@ const Dashboard = () => {
                   </IconButton>
                 </Box>
                 
-                {examSummary ? (
+                {examResultsSummary ? (
                   <Box>
                     <Box sx={{ mb: 2 }}>
                       <Typography variant="subtitle2" color="text.secondary">
                         Top Performing Class
                       </Typography>
                       <Typography variant="body1" fontWeight="medium">
-                        {examSummary.top_class?.name || 'N/A'} ({examSummary.top_class?.average || 0}%)
+                        {examResultsSummary.top_class?.name || 'N/A'} ({examResultsSummary.top_class?.average || 0}%)
                       </Typography>
                     </Box>
                     
@@ -953,7 +941,7 @@ const Dashboard = () => {
                           Subjects Taught
                         </Typography>
                         <Typography variant="body1" fontWeight="medium">
-                          {examSummary.subjects_taught || 0}
+                          {examResultsSummary.subjects_taught || 0}
                         </Typography>
                       </Grid>
                       <Grid item xs={6}>
@@ -961,7 +949,7 @@ const Dashboard = () => {
                           Exams Graded
                         </Typography>
                         <Typography variant="body1" fontWeight="medium">
-                          {examSummary.exams_graded || 0}/{examSummary.total_exams || 0}
+                          {examResultsSummary.exams_graded || 0}/{examResultsSummary.total_exams || 0}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -975,7 +963,7 @@ const Dashboard = () => {
                       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                         Class Averages
                       </Typography>
-                      {examSummary.class_averages?.slice(0, 3).map((cls, index) => (
+                      {examResultsSummary.class_averages?.slice(0, 3).map((cls, index) => (
                         <Box key={index} sx={{ mb: 1 }}>
                           <Box display="flex" justifyContent="space-between">
                             <Typography variant="body2">

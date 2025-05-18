@@ -2,9 +2,9 @@
 import { TextField, Button, Typography, Container } from '@mui/material';
 import AuthCard from './AuthCard';
 import GlobalLogin from './GlobalLogin';
-
+import { TEACHER_USER_ROLE } from '../../components/common/constants';
 const TeacherAuth = () => {
-  const loginForm = <GlobalLogin userType="Teacher"/>
+  const loginForm = <GlobalLogin userType={TEACHER_USER_ROLE}/>
 
 
   const registerForm = (

@@ -30,17 +30,17 @@ const Subjects = () => {
   const classes = useSelector(selectSubjectClasses);
   const teachersLoading = useSelector(selectTeachersLoading);
   const classesLoading = useSelector(selectClassesLoading);
-
-  useEffect(() => {
-    dispatch(fetchSubjects());
-    dispatch(fetchSubjectTeachers());
-  }, [dispatch]);
+useEffect(() => {
+  dispatch(fetchSubjects());
+}, [dispatch]);
 
   const handleDelete = (id) => {
     dispatch(deleteSubject(id));
   };
 
   const handleLoadExtras = (subjectId) => {
+    console.log("subjectId",subjectId);
+    
     dispatch(fetchSubjectTeachers(subjectId));
     dispatch(fetchSubjectClasses(subjectId));
   };
@@ -61,7 +61,7 @@ const Subjects = () => {
     );
   }
 
-  console.log("subject",teachers);
+  console.log("subject",subjects,teachers,classes);
   
   return (
     <Box p={3}>

@@ -45,6 +45,7 @@ const API_ENDPOINTS = {
     update: (id) => `/subjects/${id}/`,
     delete: (id) => `/subjects/${id}/`,
     teachers: {
+      base: '/subjects/teachers/',
       bySubject: (subjectId) => `/subjects/${subjectId}/teachers/`,
     },
     classes: {

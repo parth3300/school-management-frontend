@@ -4,6 +4,7 @@ import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import { createApiSlice } from '../../utils/sliceHelpers';
 
+// API endpoints for announcements
 const announcementEndpoints = {
   getAll: API_ENDPOINTS.announcements.getAll,
   create: API_ENDPOINTS.announcements.create,
@@ -11,6 +12,20 @@ const announcementEndpoints = {
   delete: (id) => API_ENDPOINTS.announcements.delete(id),
 };
 
+// Thunk for fetching the latest announcements
+export const fetchLatestAnnouncements = createAsyncThunk(
+  'announcements/fetchLatest',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get(API_ENDPOINTS.announcements.getAll);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// Create the announcements slice using custom helper
 const { reducer, actions } = createApiSlice({
   name: 'announcements',
   api,
@@ -21,24 +36,13 @@ const { reducer, actions } = createApiSlice({
     error: null,
   },
   extraReducers: (builder) => {
-    const fetchLatestAnnouncements = createAsyncThunk(
-      'announcements/fetchLatest',
-      async (_, { rejectWithValue }) => {
-        try {
-          const response = await api.get(API_ENDPOINTS.announcements.getAll);
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response?.data || err.message);
-        }
-      }
-    );
-
     builder
       .addCase(fetchLatestAnnouncements.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchLatestAnnouncements.fulfilled, (state, action) => {
+        console.log('latestAnnouncements', action.payload);
         state.loading = false;
         state.latestAnnouncements = action.payload;
       })
@@ -46,12 +50,7 @@ const { reducer, actions } = createApiSlice({
         state.loading = false;
         state.error = action.payload;
       });
-
-    return {
-      ...actions,
-      fetchLatestAnnouncements
-    };
-  }
+  },
 });
 
 // Selectors
@@ -59,14 +58,12 @@ export const selectLatestAnnouncements = (state) => state.announcements.latestAn
 export const selectAnnouncementsLoading = (state) => state.announcements.loading;
 export const selectAnnouncementsError = (state) => state.announcements.error;
 
-
-// Actions
+// Export actions from createApiSlice
 export const {
   fetch: fetchAnnouncements,
   create: createAnnouncement,
   update: updateAnnouncement,
   delete: deleteAnnouncement,
-  fetchLatestAnnouncements
 } = actions;
 
 export default reducer;

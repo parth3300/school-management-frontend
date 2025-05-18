@@ -3,9 +3,10 @@ import React from 'react';
 import { TextField, Button, Typography, Container } from '@mui/material';
 import AuthCard from './AuthCard';
 import GlobalLogin from './GlobalLogin';
+import { ADMIN_USER_ROLE } from '../../components/common/constants';
 
 const AdminAuth = () => {
-  const loginForm = <GlobalLogin userType="Admin"/>
+  const loginForm = <GlobalLogin userType={ADMIN_USER_ROLE}/>
 
 
   // Admin registration might be disabled or handled differently

@@ -12,6 +12,7 @@ import { register, clearAuthError } from '../../redux/slices/authSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import GlobalLogin from './GlobalLogin';
 import { formatDjangoErrors } from '../../components/common/errorHelper';
+import { VISITOR_USER_ROLE } from '../../components/common/constants';
 
 const VisitorAuth = () => {
   const [flipped, setFlipped] = useState(false);
@@ -75,7 +76,7 @@ const VisitorAuth = () => {
     }
   };
 
-  const loginForm = <GlobalLogin userType="Visitor" />;
+  const loginForm = <GlobalLogin userType={VISITOR_USER_ROLE} />;
 
   const registerForm = (
     <form onSubmit={handleRegister}>

@@ -8,7 +8,7 @@ const subjectEndpoints = {
   create: API_ENDPOINTS.subjects.create,
   update: (id) => API_ENDPOINTS.subjects.update(id),
   delete: (id) => API_ENDPOINTS.subjects.delete(id),
-  getTeachers: API_ENDPOINTS.subjects.teachers.bySubject,
+  getTeachers: API_ENDPOINTS.subjects.teachers.base,
   getClasses: API_ENDPOINTS.subjects.classes.base
 };
 
@@ -17,7 +17,7 @@ export const fetchSubjectTeachers = createAsyncThunk(
   'subjects/fetchTeachers',
   async (subjectId, { rejectWithValue }) => {
     try {
-      const response = await api.get(subjectEndpoints.getTeachers.get, {
+      const response = await api.get(subjectEndpoints.getTeachers, {
         params: { subject_id: subjectId }
       });
       return response.data;
@@ -152,7 +152,7 @@ export const {
   create: createSubject, 
   update: updateSubject, 
   delete: deleteSubject,
-  reset
+  clearSubjectDetails
 } = subjectSlice.actions;
 
 export default subjectSlice.reducer;
