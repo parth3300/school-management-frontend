@@ -42,7 +42,7 @@ const VisitorAuth = () => {
       dispatch(clearAuthError(newError));
     }
   };
-
+ console.log("authState>>>>>>>>",authState.error);
   const handleRegister = async (e) => {
     e.preventDefault();
     dispatch(clearAuthError());
@@ -129,18 +129,12 @@ const VisitorAuth = () => {
         helperText={authState.error?.re_password?.[0]}
       />
 
-      {/* Display non-field errors */}
-      {authState.error?.non_field_errors && (
+      {(authState.error?.detail || authState.error?.non_field_errors) && (
         <Alert severity="error" sx={{ mt: 2 }}>
-          {formatDjangoErrors(authState.error.non_field_errors)}
+          {formatDjangoErrors(authState.error)}
         </Alert>
       )}
 
-      {authState.error?.detail && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {formatDjangoErrors(authState.error.detail)}
-        </Alert>
-      )}
 
       <Button
         variant="contained"
@@ -158,7 +152,6 @@ const VisitorAuth = () => {
       </Button>
     </form>
   );
-
   return (
     <Container
       maxWidth="sm"

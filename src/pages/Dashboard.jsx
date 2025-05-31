@@ -135,7 +135,7 @@ const PulseDot = styled('div')(({ theme }) => ({
   }
 }));
 
-const Dashboard = () => {
+const Dashboard = async () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const dispatch = useDispatch();
@@ -159,7 +159,7 @@ const Dashboard = () => {
 
   // Redux state selectors
   const authState = useSelector((state) => state.auth);
-  const { data: announcements = [], loading: announcementsLoading } = useSelector((state) => state.announcements);
+  const { data: announcements = [], loading: announcementsLoading } = await useSelector((state) => state.announcements);
   const { classes, loading: classesLoading, error: classesError } = useSelector(selectTeacherClasses);
   const attendanceData = useSelector(selectTodayAttendance);
   const examResultsSummary = useSelector(selectExamResultsSummary);
