@@ -60,14 +60,12 @@ export const login = createAsyncThunk(
     console.log('login thunk started');
     try {
       console.log('Sending login request with:', credentials);
-      const role = localStorage.getItem('role') || 'Visitor';
-      const school_id = localStorage.getItem('school_id');
 
       const tokenResponse = await axios.post(baseURL + API_ENDPOINTS.auth.jwt_create, {
         email: credentials.email,
         password: credentials.password,
-        role: capitalizeFirst(role),
-        school_id: school_id
+        role: credentials.user_type,
+        school: localStorage.getItem('school_id')
       });
       console.log('Login response:', tokenResponse);
 
@@ -80,7 +78,6 @@ export const login = createAsyncThunk(
       const { access, refresh } = tokenResponse.data;
       console.log('Got tokens:', access, refresh);
 
-      localStorage.setItem('access_token', access);
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
 

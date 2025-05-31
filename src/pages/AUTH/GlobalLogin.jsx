@@ -1,8 +1,8 @@
 // src/components/VisitorLoginForm.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../redux/slices/authSlice';
 import { capitalizeFirst } from '../../components/common/constants';
@@ -11,12 +11,28 @@ import { formatDjangoErrors } from '../../components/common/errorHelper';
 const GlobalLogin = ({ userType }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [schoolId, setSchoolId] = useState(null);
 
   const [loginData, setLoginData] = useState({
     email: '',
     password: '',
   });
+
+  // Extract and persist school_id from URL if available
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const schoolIdFromUrl = params.get('school_id');
+
+    if (schoolIdFromUrl) {
+      localStorage.setItem('school_id', schoolIdFromUrl);
+      setSchoolId(schoolIdFromUrl);
+    } else {
+      const storedId = localStorage.getItem('school_id');
+      if (storedId) setSchoolId(storedId);
+    }
+  }, [location]);
 
   const handleLoginChange = (e) => {
     setLoginData((prev) => ({
@@ -26,9 +42,16 @@ const GlobalLogin = ({ userType }) => {
   };
 
   const handleLogin = async () => {
+
     setIsLoading(true);
-    console.log('Logging in withsss:', loginData);
-    const result = await dispatch(login(loginData));
+    const payload = {
+      ...loginData,
+      school_id: schoolId,
+      user_type: userType
+    };
+    console.log('Logging in with:', payload);
+
+    const result = await dispatch(login(payload));
     setIsLoading(false);
     if (login.fulfilled.match(result)) {
       navigate('/dashboard');
@@ -44,19 +67,16 @@ const GlobalLogin = ({ userType }) => {
       }
     }
   };
+
   const authState = useSelector((state) => state.auth);
 
   const getButtonColor = () => {
     switch (userType) {
-      case 'Teacher':
-        return 'secondary';
-      case 'Student':
-        return 'primary';
-      case 'Admin':
-        return 'error';
+      case 'Teacher': return 'secondary';
+      case 'Student': return 'primary';
+      case 'Admin': return 'error';
       case 'Visitor':
-      default:
-        return 'success';
+      default: return 'success';
     }
   };
 

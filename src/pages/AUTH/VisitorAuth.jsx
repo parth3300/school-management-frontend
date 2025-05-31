@@ -48,8 +48,7 @@ const VisitorAuth = () => {
     dispatch(clearAuthError());
     console.log('Registering with:', formData);
     
-    const result = await dispatch(register({
-      ...formData    }));
+    const result = await dispatch(register(formData));
 
     if (register.fulfilled.match(result)) {
       setFlipped(false); // Flip to login after successful registration
