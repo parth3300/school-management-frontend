@@ -13,6 +13,19 @@ const classEndpoints = {
   getStudents: (classId) => API_ENDPOINTS.classes.getStudents(classId)
 };
 
+// Custom thunk for getting students in a class
+export const fetchClassStudents = createAsyncThunk(
+  'classes/fetchStudents',
+  async (classId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(classEndpoints.getStudents(classId));
+      return { classId, students: response.data };
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
 const { reducer, actions } = createApiSlice({
   name: 'classes',
   api,
@@ -24,18 +37,6 @@ const { reducer, actions } = createApiSlice({
     error: null
   },
   extraReducers: (builder) => {
-    // Custom thunk for getting students in a class
-    const fetchClassStudents = createAsyncThunk(
-      'classes/fetchStudents',
-      async (classId, { rejectWithValue }) => {
-        try {
-          const response = await api.get(classEndpoints.getStudents(classId));
-          return { classId, students: response.data };
-        } catch (error) {
-          return rejectWithValue(error.response?.data || error.message);
-        }
-      }
-    );
 
     builder
       .addCase(fetchClassStudents.pending, (state) => {
@@ -74,7 +75,6 @@ export const {
   create: createClass,
   update: updateClass,
   delete: deleteClass,
-  fetchStudents: fetchClassStudents,
   reset
 } = actions;
 

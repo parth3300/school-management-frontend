@@ -12,6 +12,24 @@ const examEndpoints = {
   getSchedule: API_ENDPOINTS.exams.schedule.base // Only keeping schedule
 };
 
+// Custom thunk for fetching exam schedule
+export const fetchExamSchedule = createAsyncThunk(
+  'exams/fetchSchedule',
+  async ({ classId, dateRange }, { rejectWithValue }) => {
+    try {
+      const response = await api.get(examEndpoints.getSchedule, {
+        params: {
+          class_id: classId,
+          ...dateRange
+        }
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response.data);
+    }
+  }
+);
+
 const { reducer, actions } = createApiSlice({
   name: 'exams',
   api,
@@ -24,23 +42,6 @@ const { reducer, actions } = createApiSlice({
     scheduleError: null
   },
   extraReducers: (builder) => {
-    // Custom thunk for fetching exam schedule
-    const fetchExamSchedule = createAsyncThunk(
-      'exams/fetchSchedule',
-      async ({ classId, dateRange }, { rejectWithValue }) => {
-        try {
-          const response = await api.get(examEndpoints.getSchedule, {
-            params: {
-              class_id: classId,
-              ...dateRange
-            }
-          });
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response.data);
-        }
-      }
-    );
 
     builder
       // Handle exam schedule fetching
@@ -77,8 +78,7 @@ export const {
   fetch: fetchExams,
   create: createExam,
   update: updateExam,
-  delete: deleteExam,
-  fetchExamSchedule
+  delete: deleteExam
 } = actions;
 
 export default reducer;

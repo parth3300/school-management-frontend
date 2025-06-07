@@ -13,6 +13,36 @@ const examResultsEndpoints = {
   getByClass: API_ENDPOINTS.teachers.examResults.byClass // Added byClass endpoint
 };
 
+// Custom thunk for fetching exam results summary
+export const fetchExamResultsSummary = createAsyncThunk(
+  'examResults/fetchSummary',
+  async ({ examId, classId }, { rejectWithValue }) => {
+    try {
+      const response = await api.get(examResultsEndpoints.getSummary, {
+        params: { exam_id: examId, class_id: classId }
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// Custom thunk for fetching exam results by class
+export const fetchExamResultsByClass = createAsyncThunk(
+  'examResults/fetchByClass',
+  async (classId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(examResultsEndpoints.getByClass, {
+        params: { class_id: classId }
+      });
+      return { classId, data: response.data };
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 const { reducer, actions } = createApiSlice({
   name: 'examResults',
   api,
@@ -27,35 +57,6 @@ const { reducer, actions } = createApiSlice({
     classResultsError: null
   },
   extraReducers: (builder) => {
-    // Custom thunk for fetching exam results summary
-    const fetchExamResultsSummary = createAsyncThunk(
-      'examResults/fetchSummary',
-      async ({ examId, classId }, { rejectWithValue }) => {
-        try {
-          const response = await api.get(examResultsEndpoints.getSummary, {
-            params: { exam_id: examId, class_id: classId }
-          });
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response?.data || err.message);
-        }
-      }
-    );
-
-    // Custom thunk for fetching exam results by class
-    const fetchExamResultsByClass = createAsyncThunk(
-      'examResults/fetchByClass',
-      async (classId, { rejectWithValue }) => {
-        try {
-          const response = await api.get(examResultsEndpoints.getByClass, {
-            params: { class_id: classId }
-          });
-          return { classId, data: response.data };
-        } catch (err) {
-          return rejectWithValue(err.response?.data || err.message);
-        }
-      }
-    );
 
     builder
       // Handle exam results summary
@@ -108,9 +109,7 @@ export const {
   fetch: fetchExamResults,
   create: createExamResult,
   update: updateExamResult,
-  delete: deleteExamResult,
-  fetchExamResultsSummary,
-  fetchExamResultsByClass
+  delete: deleteExamResult
 } = actions;
 
 export default reducer;

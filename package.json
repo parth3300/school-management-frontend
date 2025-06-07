@@ -7,6 +7,7 @@
     "@emotion/styled": "^11.14.0",
     "@lottiefiles/react-lottie-player": "^3.6.0",
     "@mui/icons-material": "^7.0.1",
+    "@mui/lab": "^7.0.0-beta.12",
     "@mui/styled-engine": "^7.0.1",
     "@mui/x-date-pickers": "^8.2.0",
     "@reduxjs/toolkit": "^2.6.1",

@@ -136,6 +136,7 @@ const subjectSlice = createApiSlice({
 });
 
 // Selectors
+export const selectAllSubjects = (state) => state.subjects.data || [];
 export const selectSubjectTeachers = (state) => state.subjects.subjectTeachers;
 export const selectSubjectClasses = (state) => state.subjects.subjectClasses;
 export const selectSubjectCurriculum = (state) => state.subjects.curriculum;

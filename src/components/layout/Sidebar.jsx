@@ -1,6 +1,15 @@
-// Sidebar.jsx
-import React from 'react';
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar } from '@mui/material';
+import React, { useState } from 'react';
+import { 
+  Drawer, 
+  List, 
+  ListItem, 
+  ListItemIcon, 
+  ListItemText, 
+  Toolbar,
+  styled,
+  Box,
+  useTheme
+} from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   CalendarToday as CalendarIcon,
@@ -15,10 +24,36 @@ import {
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 
-const drawerWidth = 240;
+const collapsedWidth = 64;
+const expandedWidth = 240;
+
+const StyledDrawer = styled(Drawer)(({ theme, open }) => ({
+  width: open ? expandedWidth : collapsedWidth,
+  flexShrink: 0,
+  whiteSpace: 'nowrap',
+  boxSizing: 'border-box',
+  transition: theme.transitions.create('width', {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.enteringScreen,
+  }),
+  '& .MuiDrawer-paper': {
+    width: open ? expandedWidth : collapsedWidth,
+    overflowX: 'hidden',
+    transition: theme.transitions.create('width', {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+    borderRight: 'none',
+    boxShadow: theme.shadows[1],
+    backgroundColor: theme.palette.background.paper,
+    height: '100vh',
+    position: 'relative',
+  },
+}));
 
 const Sidebar = () => {
-  // Get the role from localStorage or default to 'visitor'
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
   const role = localStorage.getItem('role') || 'visitor';
   const location = useLocation();
 
@@ -71,7 +106,6 @@ const Sidebar = () => {
       path: '/exams',
       allowedRoles: ['teacher', 'student'],
     },
-    // Visitor-only links
     {
       text: 'Login',
       icon: <LoginIcon />,
@@ -86,50 +120,81 @@ const Sidebar = () => {
     },
   ];
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-          height: '100vh',
-          position: 'relative',
-        },
-      }}
-    >
-      <Toolbar />
-      <List>
-        {menuItems
-          .filter((item) => item.allowedRoles.includes(role))
-          .map((item) => {
-            const selected = location.pathname === item.path;
+  const handleMouseEnter = () => {
+    setOpen(true);
+  };
 
-            return (
-              <ListItem
-                button
-                key={item.text}
-                component={Link}
-                to={item.path}
-                selected={selected}
-                sx={{
-                  '&.Mui-selected': {
-                    backgroundColor: '#e3f2fd',
-                  },
-                  '&.Mui-selected:hover': {
-                    backgroundColor: '#bbdefb',
-                  },
-                }}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItem>
-            );
-          })}
-      </List>
-    </Drawer>
+  const handleMouseLeave = () => {
+    setOpen(false);
+  };
+
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        width: open ? expandedWidth : collapsedWidth,
+        transition: theme.transitions.create('width', {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.enteringScreen,
+        }),
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <StyledDrawer 
+        variant="permanent" 
+        open={open}
+      >
+        <Toolbar />
+        <List>
+          {menuItems
+            .filter((item) => item.allowedRoles.includes(role))
+            .map((item) => {
+              const selected = location.pathname === item.path;
+
+              return (
+                <ListItem
+                  button
+                  key={item.text}
+                  component={Link}
+                  to={item.path}
+                  selected={selected}
+                  sx={{
+                    minHeight: 48,
+                    justifyContent: open ? 'initial' : 'center',
+                    px: 2.5,
+                    '&.Mui-selected': {
+                      backgroundColor: theme.palette.action.selected,
+                      borderRight: `3px solid ${theme.palette.primary.main}`,
+                    },
+                    '&.Mui-selected:hover': {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: open ? 3 : 'auto',
+                      justifyContent: 'center',
+                      color: selected ? theme.palette.primary.main : 'inherit',
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={item.text} 
+                    sx={{ 
+                      opacity: open ? 1 : 0,
+                      transition: 'opacity 0.2s ease',
+                    }} 
+                  />
+                </ListItem>
+              );
+            })}
+        </List>
+      </StyledDrawer>
+    </Box>
   );
 };
 

@@ -1,7 +1,16 @@
 // src/components/VisitorLoginForm.jsx
 
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
+import {
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../redux/slices/authSlice';
@@ -14,6 +23,7 @@ const GlobalLogin = ({ userType }) => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [schoolId, setSchoolId] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [loginData, setLoginData] = useState({
     email: '',
@@ -41,13 +51,16 @@ const GlobalLogin = ({ userType }) => {
     }));
   };
 
-  const handleLogin = async () => {
+  const handleTogglePassword = () => {
+    setShowPassword((prev) => !prev);
+  };
 
+  const handleLogin = async () => {
     setIsLoading(true);
     const payload = {
       ...loginData,
       school_id: schoolId,
-      user_type: userType
+      user_type: userType,
     };
     console.log('Logging in with:', payload);
 
@@ -72,17 +85,24 @@ const GlobalLogin = ({ userType }) => {
 
   const getButtonColor = () => {
     switch (userType) {
-      case 'Teacher': return 'secondary';
-      case 'Student': return 'primary';
-      case 'Admin': return 'error';
+      case 'Teacher':
+        return 'secondary';
+      case 'Student':
+        return 'primary';
+      case 'Admin':
+        return 'error';
       case 'Visitor':
-      default: return 'success';
+      default:
+        return 'success';
     }
   };
 
   return (
     <>
-      <Typography variant="h5" gutterBottom>{capitalizeFirst(userType)} Login</Typography>
+      <Typography variant="h5" gutterBottom>
+        {capitalizeFirst(userType)} Login
+      </Typography>
+
       <TextField
         name="email"
         label="Email"
@@ -93,13 +113,16 @@ const GlobalLogin = ({ userType }) => {
         onChange={handleLoginChange}
         error={!!authState.error?.email}
         helperText={authState.error?.email?.[0]}
-        onKeyDown={(e) => handleKeyPress(e, document.getElementById('login-password'))}
+        onKeyDown={(e) =>
+          handleKeyPress(e, document.getElementById('login-password'))
+        }
       />
+
       <TextField
         id="login-password"
         name="password"
         label="Password"
-        type="password"
+        type={showPassword ? 'text' : 'password'}
         fullWidth
         margin="normal"
         value={loginData.password}
@@ -107,7 +130,21 @@ const GlobalLogin = ({ userType }) => {
         error={!!authState.error?.password}
         helperText={authState.error?.password?.[0]}
         onKeyDown={(e) => handleKeyPress(e, null)}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                onClick={handleTogglePassword}
+                edge="end"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
+
       <Button
         variant="contained"
         color={getButtonColor()}
@@ -122,6 +159,7 @@ const GlobalLogin = ({ userType }) => {
           'Login'
         )}
       </Button>
+
       {(authState.error?.detail || authState.error) && (
         <Alert severity="error" sx={{ mt: 2 }}>
           {formatDjangoErrors(authState.error.detail || authState.error)}

@@ -5,6 +5,111 @@ import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import { createApiSlice } from '../../utils/sliceHelpers';
 
+
+// Custom thunk for fetching classes
+export const fetchClasses = createAsyncThunk(
+  'attendance/fetchClasses',
+  async () => {
+    const response = await api.get('/classes');
+    return response.data;
+  }
+);
+
+// Custom thunk for fetching students
+export const fetchStudents = createAsyncThunk(
+  'attendance/fetchStudents',
+  async (classId) => {
+    const response = await api.get(`/classes/${classId}/students`);
+    return response.data;
+  }
+);
+
+// Custom thunk for fetching attendance by class and date
+export const fetchClassAttendance = createAsyncThunk(
+  'attendance/fetchClassAttendance',
+  async ({ classId, date }) => {
+    const isoDate = formatISO(date, { representation: 'date' });
+    const response = await api.get(attendanceEndpoints.getByDate, {
+      params: { classId, date: isoDate }
+    });
+    
+    // Convert array to object with studentId as keys for easier lookup
+    const attendanceObj = {};
+    response.data.forEach(record => {
+      attendanceObj[record.studentId] = record.status === 'present';
+    });
+    
+    return attendanceObj;
+  }
+);
+
+// Custom thunk for submitting attendance
+export const submitAttendance = createAsyncThunk(
+  'attendance/submitAttendance',
+  async (_, { getState }) => {
+    const state = getState().attendance;
+    const isoDate = formatISO(state.selectedDate, { representation: 'date' });
+    
+    const records = state.students.map(student => ({
+      studentId: student.id,
+      status: state.attendance[student.id] ? 'present' : 'absent'
+    }));
+    
+    const response = await api.post(attendanceEndpoints.bulkUpdate, {
+      classId: state.selectedClass,
+      date: isoDate,
+      records
+    });
+    
+    return response.data;
+  }
+);
+
+// Custom thunk for fetching today's attendance
+export const fetchTodayAttendance = createAsyncThunk(
+  'attendance/fetchToday',
+  async (date) => {
+    const response = await api.get(attendanceEndpoints.getByDate, {
+      params: { date }
+    });
+    return response.data;
+  }
+);
+
+// Custom thunk for fetching student attendance
+export const fetchStudentAttendance = createAsyncThunk(
+  'attendance/fetchStudent',
+  async (studentId) => {
+    const response = await api.get(attendanceEndpoints.getByStudent(studentId));
+    return { studentId, data: response.data };
+  }
+);
+
+// Custom thunk for bulk attendance update
+export const bulkUpdateAttendance = createAsyncThunk(
+  'attendance/bulkUpdate',
+  async ({ classId, date, records }) => {
+    const response = await api.post(attendanceEndpoints.bulkUpdate, {
+      classId,
+      date,
+      records
+    });
+    return response.data;
+  }
+);
+
+// Custom thunk for monthly stats
+export const fetchMonthlyStats = createAsyncThunk(
+    'attendance/fetchMonthlyStats',
+    async ({ month, year }) => {
+      const response = await api.get(attendanceEndpoints.monthlyStats, {
+        params: { month, year }
+      });
+      return response.data;
+    }
+  );
+
+
 const attendanceEndpoints = {
   getAll: API_ENDPOINTS.attendance.getAll,
   create: API_ENDPOINTS.attendance.create,
@@ -46,108 +151,6 @@ const { reducer, actions } = createApiSlice({
     success: null
   },
   extraReducers: (builder) => {
-    // Custom thunk for fetching classes
-    const fetchClasses = createAsyncThunk(
-      'attendance/fetchClasses',
-      async () => {
-        const response = await api.get('/classes');
-        return response.data;
-      }
-    );
-
-    // Custom thunk for fetching students
-    const fetchStudents = createAsyncThunk(
-      'attendance/fetchStudents',
-      async (classId) => {
-        const response = await api.get(`/classes/${classId}/students`);
-        return response.data;
-      }
-    );
-
-    // Custom thunk for fetching attendance by class and date
-    const fetchClassAttendance = createAsyncThunk(
-      'attendance/fetchClassAttendance',
-      async ({ classId, date }) => {
-        const isoDate = formatISO(date, { representation: 'date' });
-        const response = await api.get(attendanceEndpoints.getByDate, {
-          params: { classId, date: isoDate }
-        });
-        
-        // Convert array to object with studentId as keys for easier lookup
-        const attendanceObj = {};
-        response.data.forEach(record => {
-          attendanceObj[record.studentId] = record.status === 'present';
-        });
-        
-        return attendanceObj;
-      }
-    );
-
-    // Custom thunk for submitting attendance
-    const submitAttendance = createAsyncThunk(
-      'attendance/submitAttendance',
-      async (_, { getState }) => {
-        const state = getState().attendance;
-        const isoDate = formatISO(state.selectedDate, { representation: 'date' });
-        
-        const records = state.students.map(student => ({
-          studentId: student.id,
-          status: state.attendance[student.id] ? 'present' : 'absent'
-        }));
-        
-        const response = await api.post(attendanceEndpoints.bulkUpdate, {
-          classId: state.selectedClass,
-          date: isoDate,
-          records
-        });
-        
-        return response.data;
-      }
-    );
-
-    // Custom thunk for fetching today's attendance
-    const fetchTodayAttendance = createAsyncThunk(
-      'attendance/fetchToday',
-      async (date) => {
-        const response = await api.get(attendanceEndpoints.getByDate, {
-          params: { date }
-        });
-        return response.data;
-      }
-    );
-
-    // Custom thunk for fetching student attendance
-    const fetchStudentAttendance = createAsyncThunk(
-      'attendance/fetchStudent',
-      async (studentId) => {
-        const response = await api.get(attendanceEndpoints.getByStudent(studentId));
-        return { studentId, data: response.data };
-      }
-    );
-
-    // Custom thunk for bulk attendance update
-    const bulkUpdateAttendance = createAsyncThunk(
-      'attendance/bulkUpdate',
-      async ({ classId, date, records }) => {
-        const response = await api.post(attendanceEndpoints.bulkUpdate, {
-          classId,
-          date,
-          records
-        });
-        return response.data;
-      }
-    );
-
-    // Custom thunk for monthly stats
-    const fetchMonthlyStats = createAsyncThunk(
-      'attendance/fetchMonthlyStats',
-      async ({ month, year }) => {
-        const response = await api.get(attendanceEndpoints.monthlyStats, {
-          params: { month, year }
-        });
-        return response.data;
-      }
-    );
 
     builder
       // Handle classes
@@ -313,14 +316,6 @@ export const {
   create: createAttendance, 
   update: updateAttendance,
   delete: deleteAttendance,
-  fetchClasses,
-  fetchStudents,
-  fetchClassAttendance,
-  submitAttendance,
-  fetchToday: fetchTodayAttendance,
-  fetchStudent: fetchStudentAttendance,
-  bulkUpdate: bulkUpdateAttendance,
-  fetchMonthlyStats,
   setSelectedClass,
   setSelectedDate,
   toggleStudentAttendance,

@@ -1,4 +1,3 @@
-// src/components/SchoolLoginModal.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
@@ -13,10 +12,11 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LockIcon from '@mui/icons-material/Lock';
+import { useSelector } from 'react-redux';
+import { Navigate, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import RoleSelectionModal from './RoleSelectionModal';
-import { Navigate, useNavigate } from 'react-router-dom';
 import { VISITOR_USER_ROLE } from '../../components/common/constants';
 
 const style = {
@@ -32,23 +32,24 @@ const style = {
 };
 
 const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
-  const navigate = useNavigate(); // ✅ Correct usage
-
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const passwordInputRef = useRef(null);
+    const authState = useSelector((state) => state.auth);
+  console.log("authState>>>>>>>>", authState);
+  console.log("isAuthenticated:", isAuthenticated);
+  
 
-
-    const passwordInputRef = useRef(null); // ✅ 1. Create ref
-
-  // ✅ 2. Focus the input when modal opens
   useEffect(() => {
     if (open && passwordInputRef.current) {
-      // Short timeout ensures modal is mounted before focus
       setTimeout(() => passwordInputRef.current.focus(), 100);
     }
   }, [open]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -62,9 +63,8 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
 
       if (response.status === 200) {
         setShowRoleSelection(true);
-        onLoginSuccess(); // Optional: if parent component needs to know
+        onLoginSuccess?.();
       }
-      
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Please try again.');
     } finally {
@@ -76,19 +76,16 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
     localStorage.setItem('role', role);
     localStorage.setItem('school_id', school.id);
 
-    // Close both modals
     setShowRoleSelection(false);
     onClose();
-    if (role === VISITOR_USER_ROLE) {
-      // Visitors don't need school context, redirect directly
+      // Redirect to dashboard if already authenticated
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else  if (role === VISITOR_USER_ROLE) {
       navigate('/visitor-login');
     } else {
-      // For other roles, pass school context
-      navigate(`/${role}-login`, {
-        state: { schoolId: school.id }
-      });
+      navigate(`/${role}-login`, { state: { schoolId: school.id } });
     }
-    // Redirect to role-specific page
   };
 
   return (
@@ -122,7 +119,7 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
 
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
-              inputRef={passwordInputRef} // ✅ 3. Attach ref here
+              inputRef={passwordInputRef}
               margin="normal"
               required
               fullWidth
@@ -146,7 +143,6 @@ const SchoolLoginModal = ({ open, onClose, school, onLoginSuccess }) => {
         </Paper>
       </Modal>
 
-      {/* Role Selection Modal */}
       <RoleSelectionModal
         open={showRoleSelection}
         onClose={() => setShowRoleSelection(false)}

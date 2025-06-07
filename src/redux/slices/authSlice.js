@@ -35,7 +35,6 @@ export const register = createAsyncThunk(
         email: userData.email,
         name: userData.name,
         password: userData.password,
-        re_password: userData.re_password,
         school: localStorage.getItem('school_id')
 
       };

@@ -12,6 +12,21 @@ const teacherEndpoints = {
   getClasses: API_ENDPOINTS.teachers.classes.base // Add this line
 };
 
+// Custom thunk for fetching teacher's classes
+export const fetchTeacherClasses = createAsyncThunk(
+  'teachers/fetchClasses',
+  async (teacherId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(teacherEndpoints.getClasses, {
+        params: { teacher_id: teacherId }
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response.data);
+    }
+  }
+);
+
 const { reducer, actions } = createApiSlice({
   name: 'teachers',
   api,
@@ -24,20 +39,6 @@ const { reducer, actions } = createApiSlice({
     classesError: null // Add error state
   },
   extraReducers: (builder) => {
-    // Custom thunk for fetching teacher's classes
-    const fetchTeacherClasses = createAsyncThunk(
-      'teachers/fetchClasses',
-      async (teacherId, { rejectWithValue }) => {
-        try {
-          const response = await api.get(teacherEndpoints.getClasses, {
-            params: { teacher_id: teacherId }
-          });
-          return response.data;
-        } catch (err) {
-          return rejectWithValue(err.response.data);
-        }
-      }
-    );
 
     builder
       // Handle teacher classes fetching
@@ -71,8 +72,7 @@ export const {
   fetch: fetchTeachers, 
   create: createTeacher, 
   update: updateTeacher, 
-  delete: deleteTeacher,
-  fetchTeacherClasses // Export the new action
+  delete: deleteTeacher
 } = actions;
 
 export default reducer;

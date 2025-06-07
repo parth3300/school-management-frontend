@@ -1,21 +1,49 @@
-// src/components/NotFound.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Home, Search, Frown, Smile } from 'lucide-react';
-import { Helmet } from 'react-helmet';
 import * as Sentry from '@sentry/react';
+import { Helmet } from 'react-helmet';
+import {
+  Box,
+  Button,
+  Container,
+  Typography,
+  TextField,
+  InputAdornment,
+  Chip,
+  Divider,
+  useTheme,
+  useMediaQuery,
+  Paper,
+  IconButton,
+  Tooltip,
+  Fade
+} from '@mui/material';
+import {
+  ArrowBack,
+  Home,
+  Search,
+  SentimentVeryDissatisfied,
+  SentimentSatisfied,
+  HelpOutline,
+  ContactSupport,
+  Info,
+  RocketLaunch,
+  Refresh
+} from '@mui/icons-material';
 
 const NotFound = ({
   message = "Oops! The page you're looking for has vanished.",
   showSearch = true,
   redirectPath = "/",
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isHovering, setIsHovering] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
     Sentry.captureMessage(`404 Not Found: ${location.pathname}`);
@@ -39,175 +67,312 @@ const NotFound = ({
   const randomMessage = easterEggMessages[Math.floor(Math.random() * easterEggMessages.length)];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4 py-12">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        background: theme.palette.mode === 'dark'
+          ? 'linear-gradient(135deg, #121212 0%, #1a1a2e 100%)'
+          : 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
+        p: 3
+      }}
+    >
       <Helmet>
         <title>404 - Page Not Found</title>
         <meta name="description" content="The page you're looking for doesn't exist or has been moved." />
       </Helmet>
 
-      <motion.div
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-md mx-auto text-center"
-      >
-        {/* Animated Illustration */}
-        <motion.div
-          animate={{ 
-            rotate: [0, -5, 5, -5, 0],
-            y: [0, -10, 10, -10, 0]
+      <Container maxWidth="md">
+        <Paper
+          elevation={isMobile ? 0 : 6}
+          sx={{
+            p: 4,
+            borderRadius: 4,
+            background: theme.palette.mode === 'dark'
+              ? 'rgba(30, 30, 46, 0.8)'
+              : 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(8px)',
+            border: theme.palette.mode === 'dark'
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.1)'
           }}
-          transition={{ 
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="mb-8"
         >
-          <img
-            src="/404-illustration.svg" // Consider using a more modern illustration
-            alt="Page Not Found"
-            className="w-64 sm:w-72 mx-auto"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          />
-          {isHovering && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute top-0 right-0 -mt-4 -mr-4"
-            >
-              <span className="text-xs bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 px-2 py-1 rounded-full">
-                {isHovering ? "I'm lost!" : ""}
-              </span>
-            </motion.div>
-          )}
-        </motion.div>
-
-        {/* Error Code with Animation */}
-        <motion.h1 
-          className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-2"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          404
-        </motion.h1>
-
-        {/* Message */}
-        <div className="mb-6">
-          <motion.p 
-            className="text-2xl font-semibold text-gray-800 dark:text-white mb-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            {message}
-          </motion.p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            The page <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{location.pathname}</code> does not exist.
-          </p>
-        </div>
-
-        {/* Search Form */}
-        {showSearch && (
-          <motion.form 
-            onSubmit={handleSearch}
-            className="mt-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-          >
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search our site..."
-                aria-label="Search"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 dark:bg-gray-800 dark:text-white"
-              />
-              <button 
-                type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+            {/* Animated Illustration */}
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <motion.div
+                animate={{ 
+                  rotate: [0, -5, 5, -5, 0],
+                  y: [0, -10, 10, -10, 0]
+                }}
+                transition={{ 
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+                style={{ position: 'relative', display: 'inline-block' }}
               >
-                Go
-              </button>
-            </div>
-          </motion.form>
-        )}
+                <Box
+                  component="img"
+                  src="/404.jpg"
+                  alt="Page Not Found"
+                  sx={{ 
+                    width: isMobile ? 180 : 220,
+                    height: 'auto',
+                    filter: theme.palette.mode === 'dark' ? 'brightness(0.9)' : 'none'
+                  }}
+                />
+                <Fade in={isHovering}>
+                  <Chip
+                    label="I'm lost!"
+                    size="small"
+                    color="warning"
+                    sx={{ 
+                      position: 'absolute',
+                      top: -12,
+                      right: -12,
+                      transform: 'rotate(10deg)'
+                    }}
+                  />
+                </Fade>
+              </motion.div>
+            </Box>
 
-        {/* Action Buttons */}
-        <motion.div
-          className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-8"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-        >
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center px-5 py-3 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-medium rounded-lg shadow-sm transition-all hover:shadow-md"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" /> Back
-          </button>
-          <button
-            onClick={() => navigate(redirectPath)}
-            className="flex items-center px-5 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-lg shadow-sm transition-all hover:shadow-md"
-          >
-            <Home className="w-5 h-5 mr-2" /> Homepage
-          </button>
-        </motion.div>
+            {/* Error Code */}
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Typography
+                  variant="h1"
+                  sx={{
+                    fontSize: '5rem',
+                    fontWeight: 900,
+                    background: theme.palette.mode === 'dark'
+                      ? 'linear-gradient(45deg, #64b5f6 30%, #ba68c8 90%)'
+                      : 'linear-gradient(45deg, #1976d2 30%, #9c27b0 90%)',
+                    backgroundClip: 'text',
+                    textFillColor: 'transparent',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 1
+                  }}
+                >
+                  404
+                </Typography>
+              </motion.div>
+              <Typography 
+                variant="h5"
+                sx={{ 
+                  fontWeight: 600,
+                  color: theme.palette.text.primary,
+                  mb: 1
+                }}
+              >
+                {message}
+              </Typography>
+              <Typography 
+                variant="body2"
+                sx={{ 
+                  color: theme.palette.text.secondary,
+                  mb: 3
+                }}
+              >
+                The page <code style={{ 
+                  backgroundColor: theme.palette.mode === 'dark' ? '#333' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  fontFamily: 'monospace'
+                }}>{location.pathname}</code> does not exist.
+              </Typography>
+            </Box>
 
-        {/* Helpful Links */}
-        <motion.div
-          className="mt-8 text-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          <p className="text-gray-500 dark:text-gray-400 mb-2">Popular pages:</p>
-          <div className="flex justify-center gap-4">
-            <button 
-              onClick={() => navigate('/about')}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              About Us
-            </button>
-            <button 
-              onClick={() => navigate('/contact')}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Contact
-            </button>
-            <button 
-              onClick={() => navigate('/help')}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Help Center
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Easter Egg */}
-        <motion.div
-          className="mt-8 cursor-pointer"
-          onClick={() => setShowEasterEgg(!showEasterEgg)}
-          whileHover={{ scale: 1.05 }}
-        >
-          <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-            {showEasterEgg ? (
-              <span className="flex items-center justify-center">
-                <Smile className="w-4 h-4 mr-1" /> {randomMessage}
-              </span>
-            ) : (
-              <span className="flex items-center justify-center">
-                <Frown className="w-4 h-4 mr-1" /> Feeling lost? Click me!
-              </span>
+            {/* Search Form */}
+            {showSearch && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Box 
+                  component="form"
+                  onSubmit={handleSearch}
+                  sx={{ mb: 3 }}
+                >
+                  <TextField
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Search our site..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Button 
+                            type="submit"
+                            variant="text"
+                            color="primary"
+                            size="small"
+                          >
+                            Search
+                          </Button>
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        borderRadius: 50,
+                        backgroundColor: theme.palette.background.paper
+                      }
+                    }}
+                  />
+                </Box>
+              </motion.div>
             )}
-          </p>
-        </motion.div>
-      </motion.div>
-    </div>
+
+            {/* Action Buttons */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center',
+                gap: 2,
+                flexWrap: 'wrap',
+                mb: 3
+              }}>
+                <Button
+                  onClick={() => navigate(-1)}
+                  variant="outlined"
+                  size="large"
+                  startIcon={<ArrowBack />}
+                  sx={{
+                    borderRadius: 50,
+                    px: 4,
+                    textTransform: 'none'
+                  }}
+                >
+                  Go Back
+                </Button>
+                <Button
+                  onClick={() => navigate(redirectPath)}
+                  variant="contained"
+                  size="large"
+                  startIcon={<Home />}
+                  sx={{
+                    borderRadius: 50,
+                    px: 4,
+                    textTransform: 'none',
+                    background: theme.palette.mode === 'dark'
+                      ? 'linear-gradient(45deg, #64b5f6 30%, #ba68c8 90%)'
+                      : 'linear-gradient(45deg, #1976d2 30%, #9c27b0 90%)',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: theme.shadows[4]
+                    }
+                  }}
+                >
+                  Return Home
+                </Button>
+              </Box>
+            </motion.div>
+
+            {/* Helpful Links */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+            >
+              <Divider sx={{ my: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Quick Links
+                </Typography>
+              </Divider>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center',
+                gap: 2,
+                flexWrap: 'wrap'
+              }}>
+                <Tooltip title="About Us">
+                  <IconButton 
+                    onClick={() => navigate('/about')}
+                    color="primary"
+                    size="large"
+                  >
+                    <Info />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Contact">
+                  <IconButton 
+                    onClick={() => navigate('/contact')}
+                    color="primary"
+                    size="large"
+                  >
+                    <ContactSupport />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Help Center">
+                  <IconButton 
+                    onClick={() => navigate('/help')}
+                    color="primary"
+                    size="large"
+                  >
+                    <HelpOutline />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </motion.div>
+
+            {/* Easter Egg */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              whileHover={{ scale: 1.05 }}
+              style={{ cursor: 'pointer', marginTop: 16 }}
+              onClick={() => setShowEasterEgg(!showEasterEgg)}
+            >
+              <Typography 
+                variant="caption"
+                sx={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: theme.palette.text.secondary,
+                  fontStyle: 'italic'
+                }}
+              >
+                {showEasterEgg ? (
+                  <>
+                    <SentimentSatisfied sx={{ mr: 0.5, fontSize: 16 }} />
+                    {randomMessage}
+                  </>
+                ) : (
+                  <>
+                    <SentimentVeryDissatisfied sx={{ mr: 0.5, fontSize: 16 }} />
+                    Feeling lost? Click me!
+                  </>
+                )}
+              </Typography>
+            </motion.div>
+          </motion.div>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 

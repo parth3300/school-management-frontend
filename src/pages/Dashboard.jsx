@@ -43,7 +43,7 @@ import {
   Person,
   School as SchoolIcon
 } from '@mui/icons-material';
-import { fetchAnnouncements, selectAnnouncements } from '../redux/slices/announcementSlice';
+import { fetchAnnouncements } from '../redux/slices/announcementSlice';
 import { fetchTeacherClasses, selectTeacherClasses } from '../redux/slices/teacherSlice';
 import { fetchTodayAttendance, selectTodayAttendance } from '../redux/slices/attendanceSlice';
 import { fetchExamResultsSummary, selectExamResultsSummary } from '../redux/slices/examResultsSlice';
@@ -135,12 +135,13 @@ const PulseDot = styled('div')(({ theme }) => ({
   }
 }));
 
-const Dashboard = async () => {
+const Dashboard = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+  const role = localStorage.getItem('role');
+
   // Get user role from localStorage
   const userRole = localStorage.getItem('role');
   
@@ -159,12 +160,14 @@ const Dashboard = async () => {
 
   // Redux state selectors
   const authState = useSelector((state) => state.auth);
-  const { data: announcements = [], loading: announcementsLoading } = await useSelector((state) => state.announcements);
+  const { data: announcements = [], loading: announcementsLoading } = useSelector((state) => state.announcements);
   const { classes, loading: classesLoading, error: classesError } = useSelector(selectTeacherClasses);
   const attendanceData = useSelector(selectTodayAttendance);
   const examResultsSummary = useSelector(selectExamResultsSummary);
   const schoolState = useSelector(selectSchool);
 
+  console.log("authState---------->:", authState);
+  
   // Destructure with proper fallbacks
   const { 
     user = {}
@@ -186,6 +189,8 @@ const Dashboard = async () => {
 
   // Data loading function
   const loadDashboardData = useCallback(async () => {
+    console.log("in loadDashboardData");
+    
     try {
       setLoading(true);
       await Promise.all([
@@ -194,6 +199,7 @@ const Dashboard = async () => {
         dispatch(fetchExamResultsSummary()),
         dispatch(fetchSchools())
       ]);
+    console.log("in loadDashboardData2");
 
       // Only fetch announcements if not already loaded
       if (!announcements.length) {
@@ -529,7 +535,7 @@ const Dashboard = async () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <GradientCard onClick={() => navigateTo('/teacher/announcements')}>
+            <GradientCard onClick={() => navigateTo(`/${role}/announcements`)}>
               <CardContent>
                 <Box sx={{ 
                   display: 'flex', 

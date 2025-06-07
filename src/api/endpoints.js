@@ -1,4 +1,6 @@
 const API_ENDPOINTS = {
+
+  resseed: 'reseed/',
   // Authentication endpoints
   auth: {
     jwt_create: '/auth/jwt/create',
