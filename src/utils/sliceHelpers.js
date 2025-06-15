@@ -21,6 +21,7 @@ export const createApiSlice = ({
     deleteError: 'Failed to delete',
   }
 }) => {
+  console.log("User role:- ", localStorage.getItem('role'))
   console.log(`[${name}] Initializing API slice`,endpoints);
 
   // Default initial state

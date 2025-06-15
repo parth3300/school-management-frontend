@@ -9,7 +9,7 @@ const teacherEndpoints = {
   create: API_ENDPOINTS.teachers.create,
   update: (id) => API_ENDPOINTS.teachers.update(id),
   delete: (id) => API_ENDPOINTS.teachers.delete(id),
-  getClasses: API_ENDPOINTS.teachers.classes.base // Add this line
+  getClasses: (id) => API_ENDPOINTS.teachers.classes.byTeacher(id) // Add this line
 };
 
 // Custom thunk for fetching teacher's classes
@@ -17,9 +17,7 @@ export const fetchTeacherClasses = createAsyncThunk(
   'teachers/fetchClasses',
   async (teacherId, { rejectWithValue }) => {
     try {
-      const response = await api.get(teacherEndpoints.getClasses, {
-        params: { teacher_id: teacherId }
-      });
+      const response = await api.get(teacherEndpoints.getClasses(teacherId));
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response.data);
@@ -64,7 +62,8 @@ const { reducer, actions } = createApiSlice({
 
 // Selectors
 export const selectTeacherClasses = (state) => state.teachers.teacherClasses;
-export const selectCurrentTeacher = (state) => state.teachers.data;
+export const selectTeachersLoading = (state) => state.teachers.loading;
+export const selectTeachers = (state) => state.teachers.data;
 export const selectClassesLoading = (state) => state.teachers.classesLoading;
 export const selectClassesError = (state) => state.teachers.classesError;
 

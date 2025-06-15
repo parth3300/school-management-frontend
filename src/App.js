@@ -22,6 +22,7 @@ import AdminLogin from './pages/AUTH/AdminAuth';
 import StudentLogin from './pages/AUTH/StudentAuth';
 import VisitorLogin from './pages/AUTH/VisitorAuth';
 import Loader from './components/common/Loader';
+import GoogleMeetCreator from './pages/GoogleMeetCreator';
 
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
                 <Route path="/exams" element={<Exams />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/academic-years" element={<AcademicYears />} />
+                <Route path="/google-meet" element={<GoogleMeetCreator />} />
               </Route>
 
           </Routes>

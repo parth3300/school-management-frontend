@@ -60,7 +60,7 @@ const { reducer, actions } = createApiSlice({
   }
 });
 
-export const selectAllAcademicYears = (state) => state.academicYears.data || [];
+export const selectAcademicYears = (state) => state.academicYears.data || [];
 
 export const selectActiveAcademicYear = (state) => state.academicYears.activeAcademicYear;
 

@@ -60,7 +60,7 @@ const { reducer, actions } = createApiSlice({
 });
 
 // Selectors
-export const selectAllClasses = (state) => state.classes.data || [];
+export const selectClasses = (state) => state.classes.data || [];
 export const selectActiveClasses = (state) =>
   (state.classes.data || []).filter(cls => !cls.isArchived);
 export const selectArchivedClasses = (state) =>

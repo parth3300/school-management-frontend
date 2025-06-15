@@ -24,7 +24,7 @@ import GlobalLogin from './GlobalLogin';
 
 // Redux
 import { register, clearAuthError } from '../../redux/slices/authSlice';
-import { selectAllClasses, fetchClasses } from '../../redux/slices/classSlice';
+import { selectClasses, fetchClasses } from '../../redux/slices/classSlice';
 
 // Helpers
 import { formatDjangoErrors } from '../../components/common/errorHelper';
@@ -60,7 +60,7 @@ const StudentAuth = () => {
   // Redux Hooks
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
-  const classes = useSelector(selectAllClasses);
+  const classes = useSelector(selectClasses);
 
   // Effects
   useEffect(() => {

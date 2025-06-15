@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemIcon, 
-  ListItemText, 
-  Toolbar,
-  styled,
-  Box,
-  useTheme
+import {
+  Drawer, List, ListItem, ListItemIcon, ListItemText,
+  Toolbar, styled, Box, useTheme
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -20,7 +13,8 @@ import {
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Login as LoginIcon,
-  AppRegistration as SignupIcon
+  AppRegistration as SignupIcon,
+  VideoCall as VideoCallIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -118,15 +112,17 @@ const Sidebar = () => {
       path: '/signup',
       allowedRoles: ['visitor'],
     },
+    {
+      text: 'Create Google Meet',
+      icon: <VideoCallIcon />,
+      path: '/google-meet',
+      allowedRoles: ['teacher', 'admin'],
+    }
+
   ];
 
-  const handleMouseEnter = () => {
-    setOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    setOpen(false);
-  };
+  const handleMouseEnter = () => setOpen(true);
+  const handleMouseLeave = () => setOpen(false);
 
   return (
     <Box
@@ -141,10 +137,7 @@ const Sidebar = () => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <StyledDrawer 
-        variant="permanent" 
-        open={open}
-      >
+      <StyledDrawer variant="permanent" open={open}>
         <Toolbar />
         <List>
           {menuItems
@@ -152,7 +145,39 @@ const Sidebar = () => {
             .map((item) => {
               const selected = location.pathname === item.path;
 
-              return (
+              return item.external ? (
+                <ListItem
+                  button
+                  key={item.text}
+                  component="a"
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    minHeight: 48,
+                    justifyContent: open ? 'initial' : 'center',
+                    px: 2.5,
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: open ? 3 : 'auto',
+                      justifyContent: 'center',
+                      color: theme.palette.primary.main,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      opacity: open ? 1 : 0,
+                      transition: 'opacity 0.2s ease',
+                    }}
+                  />
+                </ListItem>
+              ) : (
                 <ListItem
                   button
                   key={item.text}
@@ -182,12 +207,12 @@ const Sidebar = () => {
                   >
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
-                    sx={{ 
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
                       opacity: open ? 1 : 0,
                       transition: 'opacity 0.2s ease',
-                    }} 
+                    }}
                   />
                 </ListItem>
               );

@@ -1,5 +1,6 @@
 const API_ENDPOINTS = {
 
+  meeting_bot: "meeting-bot/",
   resseed: 'reseed/',
   // Authentication endpoints
   auth: {

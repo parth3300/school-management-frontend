@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container, Box, Typography, Grid, Card, CardContent, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
@@ -11,8 +11,26 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { styled } from '@mui/material/styles';
-import api from '../api/axios';
-import API_ENDPOINTS from '../api/endpoints';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchClasses,
+  createClass,
+  updateClass,
+  deleteClass,
+  selectClasses,
+  selectClassesLoading,
+  selectClassesError
+} from '../redux/slices/classSlice';
+import {
+  fetchTeachers,
+  selectTeachers,
+  selectTeachersLoading
+} from '../redux/slices/teacherSlice';
+import {
+  fetchAcademicYears,
+  selectAcademicYears,
+  selectAcademicYearLoading
+} from '../redux/slices/academicYearSlice';
 
 // Styled Components
 const StyledCard = styled(motion(Card))(({ theme }) => ({
@@ -29,17 +47,22 @@ const StyledCard = styled(motion(Card))(({ theme }) => ({
 const Classes = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [classes, setClasses] = useState([]);
-  const [teachers, setTeachers] = useState([]);
-  const [academicYears, setAcademicYears] = useState([]);
+  const dispatch = useDispatch();
+
+  // Redux selectors
+  const classes = useSelector(selectClasses);
+  const teachers = useSelector(selectTeachers);
+  const academicYears = useSelector(selectAcademicYears);
+  const loading = {
+    classes: useSelector(selectClassesLoading),
+    teachers: useSelector(selectTeachersLoading),
+    years: useSelector(selectAcademicYearLoading),
+    form: false // Form loading handled separately
+  };
+  const error = useSelector(selectClassesError);
+
+  // Local state
   const [openDialog, setOpenDialog] = useState(false);
-  const [loading, setLoading] = useState({
-    classes: false,
-    teachers: false,
-    years: false,
-    form: false
-  });
-  const [error, setError] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -53,53 +76,15 @@ const Classes = () => {
     academic_year: false,
   });
 
-  // Fetch data functions
-  const fetchClasses = useCallback(async () => {
-    try {
-      setLoading(prev => ({ ...prev, classes: true }));
-      const response = await api.get(API_ENDPOINTS.classes.getAll);
-      setClasses(response.data);
-    } catch (error) {
-      setError('Failed to fetch classes. Please try again later.');
-      console.error('Error fetching classes:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, classes: false }));
-    }
-  }, []);
-
-  const fetchTeachers = useCallback(async () => {
-    try {
-      setLoading(prev => ({ ...prev, teachers: true }));
-      const response = await api.get(API_ENDPOINTS.teachers.getAll);
-      setTeachers(response.data);
-    } catch (error) {
-      console.error('Error fetching teachers:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, teachers: false }));
-    }
-  }, []);
-
-  const fetchAcademicYears = useCallback(async () => {
-    try {
-      setLoading(prev => ({ ...prev, years: true }));
-      const response = await api.get(API_ENDPOINTS.academicYears.getAll);
-      setAcademicYears(response.data);
-    } catch (error) {
-      console.error('Error fetching academic years:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, years: false }));
-    }
-  }, []);
-
+  // Fetch data on mount
   useEffect(() => {
-    fetchClasses();
-    fetchTeachers();
-    fetchAcademicYears();
-  }, [fetchClasses, fetchTeachers, fetchAcademicYears]);
+    dispatch(fetchClasses());
+    dispatch(fetchTeachers());
+    dispatch(fetchAcademicYears());
+  }, [dispatch]);
 
   // Dialog handlers
   const handleOpenDialog = (classData = null) => {
-    setError(null);
     setFormErrors({
       name: false,
       capacity: false,
@@ -129,7 +114,6 @@ const Classes = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedClass(null);
-    setError(null);
   };
 
   // Form handlers
@@ -161,45 +145,29 @@ const Classes = () => {
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    try {
-      setLoading(prev => ({ ...prev, form: true }));
-      const payload = {
-        ...formData,
-        capacity: parseInt(formData.capacity),
-      };
+    const payload = {
+      ...formData,
+      capacity: parseInt(formData.capacity),
+    };
 
+    try {
       if (selectedClass) {
-        await api.put(API_ENDPOINTS.classes.update(selectedClass.id), payload);
+        await dispatch(updateClass({ id: selectedClass.id, data: payload })).unwrap();
       } else {
-        await api.post(API_ENDPOINTS.classes, payload);
+        await dispatch(createClass(payload)).unwrap();
       }
-      
-      await fetchClasses();
       handleCloseDialog();
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 
-                         'Failed to save class. Please try again.';
-      setError(errorMessage);
-      console.error('Error saving class:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, form: false }));
+      // Error will be handled by Redux and displayed via selector
     }
   };
 
   const handleDelete = async (classId) => {
     if (!window.confirm('Are you sure you want to delete this class?')) return;
-
     try {
-      setLoading(prev => ({ ...prev, classes: true }));
-      await api.delete(`${API_ENDPOINTS.classes.delete(classId)}`);
-      await fetchClasses();
+      await dispatch(deleteClass(classId)).unwrap();
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 
-                         'Failed to delete class. Please try again.';
-      setError(errorMessage);
-      console.error('Error deleting class:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, classes: false }));
+      // Error will be handled by Redux
     }
   };
 
@@ -234,15 +202,6 @@ const Classes = () => {
         </Button>
       </Box>
 
-      {error && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3 }} 
-          onClose={() => setError(null)}
-        >
-          {error}
-        </Alert>
-      )}
 
       <Grid container spacing={3}>
         {classes.map((classItem) => (
@@ -409,7 +368,7 @@ const Classes = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={loading.form}>
+          <Button onClick={handleCloseDialog}>
             Cancel
           </Button>
           <Button
@@ -417,9 +376,8 @@ const Classes = () => {
             variant="contained"
             color="primary"
             disabled={loading.form}
-            startIcon={loading.form ? <CircularProgress size={20} /> : null}
           >
-            {loading.form ? 'Saving...' : 'Save'}
+            Save
           </Button>
         </DialogActions>
       </Dialog>
