@@ -30,7 +30,6 @@ import {
   Class,
   People,
   Assignment,
-  School,
   Today,
   BarChart,
   EventNote,
@@ -40,14 +39,12 @@ import {
   MoreVert,
   ArrowForward,
   SupervisedUserCircle,
-  Person,
-  School as SchoolIcon
+  Person
 } from '@mui/icons-material';
 import { fetchAnnouncements } from '../redux/slices/announcementSlice';
 import { fetchTeacherClasses, selectTeacherClasses } from '../redux/slices/teacherSlice';
 import { fetchTodayAttendance, selectTodayAttendance } from '../redux/slices/attendanceSlice';
 import { fetchExamResultsSummary, selectExamResultsSummary } from '../redux/slices/examResultsSlice';
-import { fetchSchools, selectSchool } from '../redux/slices/schoolSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
@@ -164,7 +161,6 @@ const Dashboard = () => {
   const { classes, loading: classesLoading, error: classesError } = useSelector(selectTeacherClasses);
   const attendanceData = useSelector(selectTodayAttendance);
   const examResultsSummary = useSelector(selectExamResultsSummary);
-  const schoolState = useSelector(selectSchool);
 
   console.log("authState---------->:", authState);
   
@@ -196,10 +192,9 @@ const Dashboard = () => {
       await Promise.all([
         dispatch(fetchTeacherClasses()),
         dispatch(fetchTodayAttendance()),
-        dispatch(fetchExamResultsSummary()),
-        dispatch(fetchSchools())
+        dispatch(fetchExamResultsSummary())
       ]);
-    console.log("in loadDashboardData2");
+      console.log("in loadDashboardData2");
 
       // Only fetch announcements if not already loaded
       if (!announcements.length) {
@@ -301,8 +296,6 @@ const Dashboard = () => {
 
   // Data preparation
   const firstName = user?.first_name || '';
-  const schoolName = schoolState?.name || 'School name not available';
-  const academicYear = schoolState?.current_academic_year?.name || 'Not specified';
 
   // Navigation handler
   const navigateTo = (path) => navigate(path);
@@ -385,7 +378,7 @@ const Dashboard = () => {
     const tabs = [];
     
     if (userRole === 'admin') {
-      tabs.push({ label: 'All', value: 'ALL', icon: <SchoolIcon /> });
+      tabs.push({ label: 'All', value: 'ALL', icon: <Person /> });
     }
     
     if (userRole === 'admin' || userRole === 'teacher') {
@@ -800,104 +793,11 @@ const Dashboard = () => {
 
         {/* Right Column */}
         <Grid item xs={12} md={4}>
-          {/* School Information */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <GradientCard onClick={() => navigateTo('/teacher/school-info')}>
-              <CardContent>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  mb: 2 
-                }}>
-                  <Box display="flex" alignItems="center">
-                    <School 
-                      sx={{ 
-                        mr: 1,
-                        color: theme.palette.primary.main
-                      }} 
-                    />
-                    <Typography variant="h6">
-                      School Information
-                    </Typography>
-                  </Box>
-                  <IconButton size="small">
-                    <MoreVert />
-                  </IconButton>
-                </Box>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body1" fontWeight="medium">
-                    {schoolName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {schoolState?.address || 'Address not available'}
-                  </Typography>
-                </Box>
-                
-                <Grid container spacing={1}>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Academic Year
-                    </Typography>
-                    <Typography variant="body2">
-                      {academicYear}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Established
-                    </Typography>
-                    <Typography variant="body2">
-                      {schoolState?.established_date 
-                        ? dayjs(schoolState.established_date).format('YYYY') 
-                        : 'N/A'}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Phone
-                    </Typography>
-                    <Typography variant="body2">
-                      {schoolState?.phone || 'N/A'}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Email
-                    </Typography>
-                    <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-                      {schoolState?.email || 'N/A'}
-                    </Typography>
-                  </Grid>
-                </Grid>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                  <Button 
-                    endIcon={<ArrowForward />}
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigateTo('/teacher/school-info');
-                    }}
-                  >
-                    View details
-                  </Button>
-                </Box>
-              </CardContent>
-            </GradientCard>
-          </motion.div>
-
           {/* Performance Overview */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-            style={{ marginTop: theme.spacing(3) }}
+            transition={{ delay: 0.5 }}
           >
             <GradientCard onClick={() => navigateTo(API_ENDPOINTS.teachers.examResults.base)}>
               <CardContent>

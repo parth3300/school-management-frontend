@@ -11,7 +11,8 @@ import {
   InputLabel,
   Select,
   Box,
-  Grid
+  Grid,
+  Chip
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -275,26 +276,52 @@ const TeacherAuth = () => {
               helperText={authState.error?.qualification?.[0]}
             />
           </Grid>
+<Grid item xs={12} sm={6}>
+  <Box minHeight={80}> {/* Adjust height based on your subject length */}
+    <FormControl fullWidth error={!!authState.error?.subjects}>
+      <InputLabel id="subjects-label">Subjects</InputLabel>
+      <Select
+        labelId="subjects-label"
+        name="subjects"
+        multiple
+        value={formData.subjects}
+        onChange={handleSubjectChange}
+        label="Subjects"
+        displayEmpty
+renderValue={(selected) => (
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+    {selected.map((value) => {
+      const subject = subjects.find((s) => s.id === value);
+      return <Chip key={value} label={subject?.name} color="primary"  />;
+    })}
+  </Box>
+)}
 
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Subjects</InputLabel>
-              <Select
-                name="subjects"
-                multiple
-                value={formData.subjects}
-                onChange={handleSubjectChange}
-                label="Subjects"
-                error={!!authState.error?.subjects}
-              >
-                {subjects.map((subject) => (
-                  <MenuItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+      >
+{subjects.map((subject) => {
+  const isSelected = formData.subjects.includes(subject.id);
+  return (
+    <MenuItem
+      key={subject.id}
+      value={subject.id}
+      sx={{
+        backgroundColor: isSelected ? 'rgba(25, 118, 210, 0.1)' : 'inherit',
+        fontWeight: isSelected ? 'bold' : 'normal',
+        color: isSelected ? '#1976d2' : 'inherit',
+        '&:hover': {
+          backgroundColor: 'rgba(25, 118, 210, 0.2)',
+        },
+      }}
+    >
+      {subject.name}
+    </MenuItem>
+  );
+})}
+
+      </Select>
+    </FormControl>
+  </Box>
+</Grid>
 
           {/* Authentication Section */}
           <Grid item xs={12}>

@@ -10,6 +10,7 @@
   import attendanceReducer from './slices/attendanceSlice';
   import examReducer from './slices/examSlice';
   import announcementReducer from './slices/announcementSlice'; // ✅ import this
+  import academicYearsReducer from './slices/academicYearSlice'; // ✅ import this
 
   // Configure store with all reducers
   const store = configureStore({
@@ -23,6 +24,7 @@
       attendance: attendanceReducer,
       exams: examReducer,
       announcements: announcementReducer, // ✅ add this
+      academicYears: academicYearsReducer, // ✅ add this
 
     },
   });

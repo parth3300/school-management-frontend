@@ -5,25 +5,6 @@ import api from '../../api/axios';
 import API_ENDPOINTS from '../../api/endpoints';
 import { createApiSlice } from '../../utils/sliceHelpers';
 
-
-// Custom thunk for fetching classes
-export const fetchClasses = createAsyncThunk(
-  'attendance/fetchClasses',
-  async () => {
-    const response = await api.get('/classes');
-    return response.data;
-  }
-);
-
-// Custom thunk for fetching students
-export const fetchStudents = createAsyncThunk(
-  'attendance/fetchStudents',
-  async (classId) => {
-    const response = await api.get(`/classes/${classId}/students`);
-    return response.data;
-  }
-);
-
 // Custom thunk for fetching attendance by class and date
 export const fetchClassAttendance = createAsyncThunk(
   'attendance/fetchClassAttendance',
@@ -152,35 +133,7 @@ const { reducer, actions } = createApiSlice({
   },
   extraReducers: (builder) => {
 
-    builder
-      // Handle classes
-      .addCase(fetchClasses.pending, (state) => {
-        state.loadingStates.classes = true;
-        state.error = null;
-      })
-      .addCase(fetchClasses.fulfilled, (state, action) => {
-        state.loadingStates.classes = false;
-        state.classes = action.payload;
-      })
-      .addCase(fetchClasses.rejected, (state, action) => {
-        state.loadingStates.classes = false;
-        state.error = action.error.message;
-      })
-      
-      // Handle students
-      .addCase(fetchStudents.pending, (state) => {
-        state.loadingStates.students = true;
-        state.error = null;
-      })
-      .addCase(fetchStudents.fulfilled, (state, action) => {
-        state.loadingStates.students = false;
-        state.students = action.payload;
-      })
-      .addCase(fetchStudents.rejected, (state, action) => {
-        state.loadingStates.students = false;
-        state.error = action.error.message;
-      })
-      
+    builder   
       // Handle class attendance
       .addCase(fetchClassAttendance.pending, (state) => {
         state.loadingStates.attendance = true;
@@ -255,8 +208,6 @@ const { reducer, actions } = createApiSlice({
 
     return { 
       ...actions, 
-      fetchClasses,
-      fetchStudents,
       fetchClassAttendance,
       submitAttendance,
       fetchToday: fetchTodayAttendance,

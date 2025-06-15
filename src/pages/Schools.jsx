@@ -468,7 +468,7 @@ const Schools = () => {
                     
                     <Box sx={{ mb: 1, height: 50, overflow: 'hidden' }}>
                       <Box display="flex" alignItems="flex-start" gap={1}>
-                        <LocationOn fontSize="small" color="action" sx={{ mt: 0.5 }} />
+                        <LocationOn fontSize="small" color="action" sx={{ mt: 0 }} />
                         <Typography variant="body2" color="text.secondary" sx={{
                           display: '-webkit-box',
                           WebkitLineClamp: 2,

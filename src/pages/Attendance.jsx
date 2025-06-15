@@ -13,8 +13,6 @@ import { motion } from 'framer-motion';
 import { styled } from '@mui/material/styles';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  fetchClasses,
-  fetchStudents,
   fetchAttendance,
   setSelectedClass,
   setSelectedDate,
@@ -22,6 +20,8 @@ import {
   submitAttendance,
   resetStatus,
 } from '../redux/slices/attendanceSlice';
+import { fetchClasses } from '../redux/slices/classSlice';
+import { fetchStudents } from '../redux/slices/studentSlice';
 
 const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
