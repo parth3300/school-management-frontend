@@ -29,6 +29,7 @@ import { selectClasses, fetchClasses } from '../../redux/slices/classSlice';
 // Helpers
 import { formatDjangoErrors } from '../../components/common/errorHelper';
 import { STUDENT_USER_ROLE } from '../../components/common/constants';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 const StudentAuth = () => {
   // State Management
@@ -59,7 +60,7 @@ const StudentAuth = () => {
 
   // Redux Hooks
   const dispatch = useDispatch();
-  const authState = useSelector((state) => state.auth);
+  const showPasswordauthState = useSelector((state) => state.auth);
   const classes = useSelector(selectClasses);
 
   // Effects
@@ -302,41 +303,85 @@ const StudentAuth = () => {
   );
 
   const AccountSecuritySection = () => (
+    
     <>
       <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #eee', pb: 1, mt: 2 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ borderBottom: '1px solid #eee', pb: 1, mt: 2 }}
+        >
           Account Security
         </Typography>
       </Grid>
 
       <Grid item xs={12} sm={6}>
         <TextField
+          margin="normal"
+          required
+          fullWidth
           name="password"
           label="Password"
-          type="password"
-          fullWidth
-          required
+          type={showPassword ? 'text' : 'password'}
+          id="password"
+          autoComplete="current-password"
           value={formData.password}
           onChange={handleChange}
-          error={!!authState.error?.password}
-          helperText={authState.error?.password?.[0]}
+          onKeyDown={(e) => handleKeyDown(e, null)}
+          inputRef={passwordRef}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LockOutlined color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() => setShowPassword(!showPassword)}
+                  edge="end"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
         />
       </Grid>
 
       <Grid item xs={12} sm={6}>
         <TextField
+          margin="normal"
+          required
+          fullWidth
           name="re_password"
           label="Confirm Password"
-          type="password"
-          fullWidth
-          required
+          type={showPassword ? 'text' : 'password'}
+          id="re_password"
+          autoComplete="new-password"
           value={formData.re_password}
           onChange={handleChange}
-          error={!!authState.error?.re_password}
-          helperText={authState.error?.re_password?.[0]}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LockOutlined color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() => setShowPassword(!showPassword)}
+                  edge="end"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
         />
       </Grid>
     </>
+
   );
 
   // Form Components

@@ -12,11 +12,15 @@ import {
   Select,
   Box,
   Grid,
-  Chip
+  Chip,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import AuthCard from './AuthCard';
 import GlobalLogin from './GlobalLogin';
 import { useDispatch, useSelector } from 'react-redux';
@@ -27,6 +31,7 @@ import { selectAllSubjects, fetchSubjects } from '../../redux/slices/subjectSlic
 
 const TeacherAuth = () => {
   const [flipped, setFlipped] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
 
@@ -56,8 +61,6 @@ const TeacherAuth = () => {
   // Get data from Redux store
   const subjects = useSelector(selectAllSubjects);
 
-  console.log("flipped",flipped);
-  
   useEffect(() => {
     dispatch(clearAuthError());
     if (flipped) {
@@ -94,6 +97,14 @@ const TeacherAuth = () => {
     }));
   };
 
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     dispatch(clearAuthError());
@@ -102,8 +113,7 @@ const TeacherAuth = () => {
     const payload = {
       ...formData,
       date_of_birth: formData.date_of_birth?.toISOString(),
-      joining_date: formData.joining_date?.toISOString(),
-      is_teacher: true
+      joining_date: formData.joining_date?.toISOString()
     };
     
     const result = await dispatch(register(payload));
@@ -276,52 +286,51 @@ const TeacherAuth = () => {
               helperText={authState.error?.qualification?.[0]}
             />
           </Grid>
-<Grid item xs={12} sm={6}>
-  <Box minHeight={80}> {/* Adjust height based on your subject length */}
-    <FormControl fullWidth error={!!authState.error?.subjects}>
-      <InputLabel id="subjects-label">Subjects</InputLabel>
-      <Select
-        labelId="subjects-label"
-        name="subjects"
-        multiple
-        value={formData.subjects}
-        onChange={handleSubjectChange}
-        label="Subjects"
-        displayEmpty
-renderValue={(selected) => (
-  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-    {selected.map((value) => {
-      const subject = subjects.find((s) => s.id === value);
-      return <Chip key={value} label={subject?.name} color="primary"  />;
-    })}
-  </Box>
-)}
 
-      >
-{subjects.map((subject) => {
-  const isSelected = formData.subjects.includes(subject.id);
-  return (
-    <MenuItem
-      key={subject.id}
-      value={subject.id}
-      sx={{
-        backgroundColor: isSelected ? 'rgba(25, 118, 210, 0.1)' : 'inherit',
-        fontWeight: isSelected ? 'bold' : 'normal',
-        color: isSelected ? '#1976d2' : 'inherit',
-        '&:hover': {
-          backgroundColor: 'rgba(25, 118, 210, 0.2)',
-        },
-      }}
-    >
-      {subject.name}
-    </MenuItem>
-  );
-})}
-
-      </Select>
-    </FormControl>
-  </Box>
-</Grid>
+          <Grid item xs={12} sm={6}>
+            <Box minHeight={80}>
+              <FormControl fullWidth error={!!authState.error?.subjects}>
+                <InputLabel id="subjects-label">Subjects</InputLabel>
+                <Select
+                  labelId="subjects-label"
+                  name="subjects"
+                  multiple
+                  value={formData.subjects}
+                  onChange={handleSubjectChange}
+                  label="Subjects"
+                  displayEmpty
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => {
+                        const subject = subjects.find((s) => s.id === value);
+                        return <Chip key={value} label={subject?.name} color="primary" />;
+                      })}
+                    </Box>
+                  )}
+                >
+                  {subjects.map((subject) => {
+                    const isSelected = formData.subjects.includes(subject.id);
+                    return (
+                      <MenuItem
+                        key={subject.id}
+                        value={subject.id}
+                        sx={{
+                          backgroundColor: isSelected ? 'rgba(25, 118, 210, 0.1)' : 'inherit',
+                          fontWeight: isSelected ? 'bold' : 'normal',
+                          color: isSelected ? '#1976d2' : 'inherit',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.2)',
+                          },
+                        }}
+                      >
+                        {subject.name}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Box>
+          </Grid>
 
           {/* Authentication Section */}
           <Grid item xs={12}>
@@ -334,13 +343,27 @@ renderValue={(selected) => (
             <TextField
               name="password"
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               fullWidth
               required
               value={formData.password}
               onChange={handleChange}
               error={!!authState.error?.password}
               helperText={authState.error?.password?.[0]}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
 
@@ -348,13 +371,27 @@ renderValue={(selected) => (
             <TextField
               name="re_password"
               label="Confirm Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               fullWidth
               required
               value={formData.re_password}
               onChange={handleChange}
               error={!!authState.error?.re_password}
               helperText={authState.error?.re_password?.[0]}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
         </Grid>

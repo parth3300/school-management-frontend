@@ -45,7 +45,7 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword,  ] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
@@ -185,7 +185,7 @@ const Login = () => {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={() =>  (!showPassword)}
                         edge="end"
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
