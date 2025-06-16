@@ -29,7 +29,7 @@ import { fetchTeacherClasses, selectTeacherClasses } from '../redux/slices/teach
 
 const GoogleMeetCreator = () => {
   const dispatch = useDispatch();
-  const { teacherClasses, loading: classesLoading } = useSelector(selectTeacherClasses);
+  const { teacherClasses = [], loading: classesLoading } = useSelector(selectTeacherClasses);
   const [title, setTitle] = useState('Class Meeting');
   const [description, setDescription] = useState('Join via Google Meet');
   const [startTime, setStartTime] = useState(dayjs());
@@ -43,21 +43,14 @@ const GoogleMeetCreator = () => {
     message: '',
     severity: 'success'
   });
+const { user } = useSelector((state) => state.auth);
 
   // Fetch teacher's classes on component mount
   useEffect(() => {
-    const fetchData = async () => {
-      console.log("Fetching data...");
-      try {
-        dispatch(fetchTeacherClasses());
-
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    
-    fetchData();    
-  }, [dispatch]);
+    if (user) {
+      dispatch(fetchTeacherClasses(user.id));
+    }
+  }, [dispatch, user]);
 
   const handleCreateMeet = async () => {
     const start = encodeURIComponent(startTime.toISOString());
@@ -90,7 +83,6 @@ const GoogleMeetCreator = () => {
 
       setLoading(true);
       try {
-        // Call backend to start the bot with class information
         const payload = {
           meeting_link: calendarUrl,
           filename: filename,
@@ -176,6 +168,32 @@ const GoogleMeetCreator = () => {
           </Grid>
         </LocalizationProvider>
 
+        {/* Always show class selection */}
+        <Grid item xs={12}>
+          <FormControl fullWidth>
+            <InputLabel id="class-select-label">Select Class</InputLabel>
+            <Select
+              labelId="class-select-label"
+              value={selectedClass}
+              label="Select Class"
+              onChange={(e) => setSelectedClass(e.target.value)}
+              required={enableBot} // Only required when bot is enabled
+            >
+              {classesLoading ? (
+                <MenuItem disabled>Loading classes...</MenuItem>
+              ) : teacherClasses && teacherClasses.length > 0 ? (
+                teacherClasses.map((cls) => (
+                  <MenuItem key={cls.id} value={cls.id}>
+                    {cls.name} (Grade {cls.grade_level})
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem disabled>No classes available</MenuItem>
+              )}
+            </Select>
+          </FormControl>
+        </Grid>
+
         <Grid item xs={12}>
           <FormControlLabel
             control={
@@ -191,31 +209,6 @@ const GoogleMeetCreator = () => {
 
         {enableBot && (
           <>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel id="class-select-label">Select Class</InputLabel>
-                <Select
-                  labelId="class-select-label"
-                  value={selectedClass}
-                  label="Select Class"
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  required
-                >
-                  {classesLoading ? (
-                    <MenuItem disabled>Loading classes...</MenuItem>
-                  ) : teacherClasses.length > 0 ? (
-                    teacherClasses.map((cls) => (
-                      <MenuItem key={cls.id} value={cls.id}>
-                        {cls.name} (Grade {cls.grade_level})
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem disabled>No classes available</MenuItem>
-                  )}
-                </Select>
-              </FormControl>
-            </Grid>
-
             <Grid item xs={12}>
               <TextField
                 fullWidth

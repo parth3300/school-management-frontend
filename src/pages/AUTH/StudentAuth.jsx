@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   TextField,
@@ -12,11 +12,15 @@ import {
   InputLabel,
   Select,
   Box,
-  Grid
+  Grid,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LockOutlined } from '@mui/icons-material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 // Components
 import AuthCard from './AuthCard';
@@ -29,11 +33,11 @@ import { selectClasses, fetchClasses } from '../../redux/slices/classSlice';
 // Helpers
 import { formatDjangoErrors } from '../../components/common/errorHelper';
 import { STUDENT_USER_ROLE } from '../../components/common/constants';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 const StudentAuth = () => {
   // State Management
   const [flipped, setFlipped] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     // User model fields
     email: '',
@@ -58,9 +62,12 @@ const StudentAuth = () => {
     re_password: ''
   });
 
+  // Refs
+  const passwordRef = useRef(null);
+
   // Redux Hooks
   const dispatch = useDispatch();
-  const showPasswordauthState = useSelector((state) => state.auth);
+  const authState = useSelector((state) => state.auth);
   const classes = useSelector(selectClasses);
 
   // Effects
@@ -89,6 +96,19 @@ const StudentAuth = () => {
       ...prev,
       [name]: date
     }));
+  };
+
+  const handleKeyDown = (e, fieldName) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (fieldName === 'password') {
+        passwordRef.current.focus();
+      }
+    }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleRegister = async (e) => {
@@ -303,14 +323,9 @@ const StudentAuth = () => {
   );
 
   const AccountSecuritySection = () => (
-    
     <>
       <Grid item xs={12}>
-        <Typography
-          variant="h6"
-          gutterBottom
-          sx={{ borderBottom: '1px solid #eee', pb: 1, mt: 2 }}
-        >
+        <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #eee', pb: 1, mt: 2 }}>
           Account Security
         </Typography>
       </Grid>
@@ -324,11 +339,13 @@ const StudentAuth = () => {
           label="Password"
           type={showPassword ? 'text' : 'password'}
           id="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           value={formData.password}
           onChange={handleChange}
-          onKeyDown={(e) => handleKeyDown(e, null)}
+          onKeyDown={(e) => handleKeyDown(e, 'password')}
           inputRef={passwordRef}
+          error={!!authState.error?.password}
+          helperText={authState.error?.password?.[0]}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -338,7 +355,8 @@ const StudentAuth = () => {
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="toggle password visibility"
+                  onClick={togglePasswordVisibility}
                   edge="end"
                 >
                   {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -361,6 +379,8 @@ const StudentAuth = () => {
           autoComplete="new-password"
           value={formData.re_password}
           onChange={handleChange}
+          error={!!authState.error?.re_password}
+          helperText={authState.error?.re_password?.[0]}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -370,7 +390,8 @@ const StudentAuth = () => {
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
-                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="toggle password visibility"
+                  onClick={togglePasswordVisibility}
                   edge="end"
                 >
                   {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -381,7 +402,6 @@ const StudentAuth = () => {
         />
       </Grid>
     </>
-
   );
 
   // Form Components

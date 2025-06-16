@@ -4,7 +4,7 @@ const API_ENDPOINTS = {
   resseed: 'reseed/',
   // Authentication endpoints
   auth: {
-    jwt_create: '/auth/jwt/create',
+    jwt_create: '/auth/jwt/create/',
     jwt_create_custom: '/token-by-email/',
     jwt_refresh: '/auth/jwt/refresh/',
     login: '/auth/users/me/',
