@@ -27,11 +27,9 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData, { rejectWithValue }) => {
     try {
-      const role = localStorage.getItem('role') || 'Visitor';
-      const capitalizedRole = capitalizeFirst(role);
 
       const payload = {
-        role: capitalizedRole,
+        role: localStorage.getItem('role'),
         email: userData.email,
         name: userData.name,
         password: userData.password,

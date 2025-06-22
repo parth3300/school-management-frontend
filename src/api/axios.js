@@ -10,8 +10,8 @@ import { logout, refreshToken } from '../redux/slices/authSlice';
 /* ----------------------------------------------------------------
  * 1. BASE CONFIGURATION
  * ---------------------------------------------------------------- */
-// export const baseURL = 'http://127.0.0.1:8000/school_management';
-export const baseURL = 'https://school-management-backend-fey0.onrender.com/school_management';
+export const baseURL = 'http://127.0.0.1:8000/school_management';
+// export const baseURL = 'https://school-management-backend-fey0.onrender.com/school_management';
 
 const api = axios.create({ baseURL });
 
@@ -36,6 +36,8 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
 
+    console.log("config",config);
+      
     // Public endpoints that don’t need auth
     const publicEndpoints = [
       { url: '/schools/',     method: 'get'  },

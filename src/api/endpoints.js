@@ -1,7 +1,11 @@
+// src/api/endpoints.js
 const API_ENDPOINTS = {
-
+  // Base endpoints
   meeting_bot: "meeting-bot/",
+  meeting_link: 'meeting-link/',
+  create_meeting: 'create-meeting/',
   resseed: 'reseed/',
+
   // Authentication endpoints
   auth: {
     jwt_create: '/auth/jwt/create/',
@@ -226,7 +230,7 @@ const API_ENDPOINTS = {
     changePassword: '/users/change-password/',
     resetPassword: '/users/reset-password/',
     verifyEmail: '/users/verify-email/',
-  },
+  }
 };
 
 export default API_ENDPOINTS;
