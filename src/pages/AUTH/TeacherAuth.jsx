@@ -32,6 +32,7 @@ import { selectAllSubjects, fetchSubjects } from '../../redux/slices/subjectSlic
 const TeacherAuth = () => {
   const [flipped, setFlipped] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
 
@@ -67,6 +68,15 @@ const TeacherAuth = () => {
       dispatch(fetchSubjects());
     }
   }, [dispatch, flipped]);
+
+  useEffect(() => {
+    // Validate password match whenever either password field changes
+    if (formData.password && formData.re_password && formData.password !== formData.re_password) {
+      setPasswordError('Passwords do not match');
+    } else {
+      setPasswordError('');
+    }
+  }, [formData.password, formData.re_password]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -108,6 +118,12 @@ const TeacherAuth = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     dispatch(clearAuthError());
+
+    // Check password match before submitting
+    if (formData.password !== formData.re_password) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
 
     // Format dates to ISO string
     const payload = {
@@ -348,8 +364,8 @@ const TeacherAuth = () => {
               required
               value={formData.password}
               onChange={handleChange}
-              error={!!authState.error?.password}
-              helperText={authState.error?.password?.[0]}
+              error={!!authState.error?.password || !!passwordError}
+              helperText={authState.error?.password?.[0] || ''}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -376,8 +392,8 @@ const TeacherAuth = () => {
               required
               value={formData.re_password}
               onChange={handleChange}
-              error={!!authState.error?.re_password}
-              helperText={authState.error?.re_password?.[0]}
+              error={!!authState.error?.re_password || !!passwordError}
+              helperText={authState.error?.re_password?.[0] || passwordError}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -408,7 +424,7 @@ const TeacherAuth = () => {
           fullWidth
           type="submit"
           sx={{ mt: 3 }}
-          disabled={authState.loading}
+          disabled={authState.loading || !!passwordError}
         >
           {authState.loading ? (
             <CircularProgress size={24} color="inherit" />
